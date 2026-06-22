@@ -15,9 +15,19 @@ function renderPathLinks(ui, game) {
     const from = game.path[index - 1];
     const to = game.path[index];
     const link = document.createElement("span");
-    const isHorizontal = from.y === to.y;
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const isHorizontal = dy === 0;
+    const isVertical = dx === 0;
+    const isPositiveDiagonal = dx * dy > 0;
 
-    link.className = `path-link ${isHorizontal ? "is-horizontal" : "is-vertical"}`;
+    link.className = [
+      "path-link",
+      isHorizontal && "is-horizontal",
+      isVertical && "is-vertical",
+      !isHorizontal && !isVertical && "is-diagonal",
+      !isHorizontal && !isVertical && (isPositiveDiagonal ? "is-diagonal-down" : "is-diagonal-up")
+    ].filter(Boolean).join(" ");
     link.style.setProperty("--x", Math.min(from.x, to.x));
     link.style.setProperty("--y", Math.min(from.y, to.y));
     link.style.setProperty("--i", index);
