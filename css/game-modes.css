@@ -1,4 +1,5 @@
-.mode-screen {
+.mode-screen,
+.variant-screen {
   min-height: 100%;
   padding: 28px;
   flex-direction: column;
@@ -6,14 +7,16 @@
   gap: 18px;
 }
 
-.mode-list {
+.mode-list,
+.variant-list {
   display: grid;
   width: min(660px, 100%);
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
-.mode-card {
+.mode-card,
+.variant-card {
   min-height: 132px;
   padding: 18px;
   border-radius: 10px;
@@ -23,12 +26,15 @@
   transition: transform 150ms ease, filter 150ms ease, box-shadow 150ms ease;
 }
 
-.mode-card:active {
+.mode-card:active,
+.variant-card:active {
   transform: scale(0.97);
 }
 
 .mode-card:hover,
-.mode-card:focus-visible {
+.mode-card:focus-visible,
+.variant-card:hover,
+.variant-card:focus-visible {
   filter: saturate(1.12);
   box-shadow:
     inset 0 0 0 2px rgba(255, 106, 37, 0.44),
@@ -37,18 +43,32 @@
 }
 
 .mode-card strong,
-.mode-card span {
+.mode-card span,
+.variant-card strong,
+.variant-card span {
   display: block;
 }
 
-.mode-card strong {
+.mode-card strong,
+.variant-card strong {
   font-size: 1.35rem;
 }
 
-.mode-card span {
+.mode-card span,
+.variant-card span {
   margin-top: 7px;
   color: var(--muted);
   line-height: 1.35;
+}
+
+.variant-card[data-variant="match3"] {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.92), transparent 26%),
+    linear-gradient(145deg, rgba(255, 245, 252, 0.96), rgba(211, 236, 255, 0.92) 48%, rgba(255, 226, 170, 0.9));
+}
+
+.variant-card[data-variant="match3"] strong {
+  color: #a61f66;
 }
 
 .topbar {
@@ -94,25 +114,30 @@
 }
 
 @media (max-width: 700px) {
-  .mode-screen {
+  .mode-screen,
+  .variant-screen {
     padding: 18px;
   }
 
-  .mode-list {
+  .mode-list,
+  .variant-list {
     grid-template-columns: 1fr;
     gap: 10px;
   }
 
-  .mode-card {
+  .mode-card,
+  .variant-card {
     min-height: 0;
     padding: 14px 15px;
   }
 
-  .mode-card strong {
+  .mode-card strong,
+  .variant-card strong {
     font-size: 1.18rem;
   }
 
-  .mode-card span {
+  .mode-card span,
+  .variant-card span {
     margin-top: 4px;
     font-size: 0.9rem;
   }
@@ -134,7 +159,8 @@
 }
 
 @media (max-width: 420px) {
-  .mode-screen h2 {
+  .mode-screen h2,
+  .variant-screen h2 {
     font-size: clamp(1.75rem, 12vw, 3rem);
   }
 
