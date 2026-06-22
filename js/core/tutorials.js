@@ -37,67 +37,91 @@ function boardFrom(rows, levels = {}) {
 }
 
 const MERGE_PAIR_BOARD = () => boardFrom([
-  "C O G S B",
-  "S G B O C",
-  "O C S G B",
-  "G B O C S",
-  "C C G S O"
+  "C O G S B C O G",
+  "S G B O C S G B",
+  "O C S G B O C S",
+  "G B O C C G B O",
+  "B S C G O B S C",
+  "C O B S G C O B",
+  "S G C O B S G C",
+  "O B S C G O B S"
 ]);
 
 const MERGE_CHAIN_BOARD = () => boardFrom([
-  "C O G S B",
-  "S C B O G",
-  "O G C S B",
-  "G B S C O",
-  "B S O G C"
+  "C O G S B C O G",
+  "S G B O C S G B",
+  "O C C G B O C S",
+  "G B O C S G B O",
+  "B S C G C B S C",
+  "C O B S G C O B",
+  "S G C O B S G C",
+  "O B S C G O B S"
 ]);
 
 const MERGE_OBSTACLE_BOARD = () => boardFrom([
-  "C O G S B",
-  "S G B O C",
-  "O C S G B",
-  "X B O C S",
-  "C C G S O"
+  "C O G S B C O G",
+  "S G B O C S G B",
+  "O C S G B O C S",
+  "G B X C C G B O",
+  "B S C G O B S C",
+  "C O B S G C O B",
+  "S G C O B S G C",
+  "O B S C G O B S"
 ]);
 
 const MERGE_CLEANUP_BOARD = () => boardFrom([
-  ". . . . .",
-  ". . . . .",
-  ". . . . .",
-  ". C C C .",
-  ". . . . ."
+  ". . . . . . . .",
+  ". . . . . . . .",
+  ". . . . . . . .",
+  ". . . . . . . .",
+  ". . C C C . . .",
+  ". . . . . . . .",
+  ". . . . . . . .",
+  ". . . . . . . ."
 ]);
 
 const MATCH3_ROW_BOARD = () => boardFrom([
-  "C O G S B",
-  "S G C B O",
-  "O C G C B",
-  "G B S O C",
-  "B S O G S"
+  "C O G S B C O G",
+  "S G B O C S G B",
+  "O C S G B O C S",
+  "G B O C S G B O",
+  "B S C G C B S C",
+  "C O B S G C O B",
+  "S G C O B S G C",
+  "O B S C G O B S"
 ]);
 
 const MATCH3_COLUMN_BOARD = () => boardFrom([
-  "C O G S B",
-  "S G B O C",
-  "O S S C B",
-  "G B C S O",
-  "B S C O G"
+  "C O G S B C O G",
+  "S G B O C S G B",
+  "O C S C B O C S",
+  "G B O G C G B O",
+  "B S C C O B S C",
+  "C O B S G C O B",
+  "S G C O B S G C",
+  "O B S C G O B S"
 ]);
 
 const MATCH3_OBSTACLE_BOARD = () => boardFrom([
-  "C O G S B",
-  "S G C B O",
-  "O C G C B",
-  "G X S O C",
-  "B S O G S"
+  "C O G S B C O G",
+  "S G B O C S G B",
+  "O C S G B O C S",
+  "G B O C S G B O",
+  "B S C G C X S C",
+  "C O B S G C O B",
+  "S G C O B S G C",
+  "O B S C G O B S"
 ]);
 
 const MATCH3_CLEANUP_BOARD = () => boardFrom([
-  ". . . . .",
-  ". S C B .",
-  ". O G C .",
-  ". C C O .",
-  ". . . . ."
+  ". . . . . . . .",
+  ". . . . . . . .",
+  ". . . . . . . .",
+  ". . . C . . . .",
+  ". . C G C . . .",
+  ". . . . . . . .",
+  ". . . . . . . .",
+  ". . . . . . . ."
 ]);
 
 const MODE_TIPS = {
@@ -115,13 +139,13 @@ function mergeSteps(mode) {
     return [
       {
         board: MERGE_CLEANUP_BOARD,
-        message: "Tutorial limpieza: arrastra las tres cerezas para vaciar esta zona.",
-        action: { type: "merge", path: [{ x: 1, y: 3 }, { x: 2, y: 3 }, { x: 3, y: 3 }] }
+        message: "Tutorial limpieza: arrastra las tres cerezas del centro para vaciar esta zona.",
+        action: { type: "merge", path: [{ x: 2, y: 4 }, { x: 3, y: 4 }, { x: 4, y: 4 }] }
       },
       {
         board: MERGE_PAIR_BOARD,
-        message: "Ahora haz una pareja normal: en limpieza desaparecerian y no entrarian frutas nuevas.",
-        action: { type: "merge", path: [{ x: 0, y: 4 }, { x: 1, y: 4 }] }
+        message: "Ahora haz una pareja normal en el centro: en limpieza desaparecerian y no entrarian frutas nuevas.",
+        action: { type: "merge", path: [{ x: 3, y: 3 }, { x: 4, y: 3 }] }
       }
     ];
   }
@@ -131,12 +155,12 @@ function mergeSteps(mode) {
       {
         board: MERGE_OBSTACLE_BOARD,
         message: "Tutorial obstaculos: fusiona las cerezas junto a la roca para romperla.",
-        action: { type: "merge", path: [{ x: 0, y: 4 }, { x: 1, y: 4 }] }
+        action: { type: "merge", path: [{ x: 3, y: 3 }, { x: 4, y: 3 }] }
       },
       {
         board: MERGE_CHAIN_BOARD,
-        message: "Las diagonales tambien sirven: une esta cadena de cuatro cerezas.",
-        action: { type: "merge", path: [{ x: 1, y: 1 }, { x: 2, y: 2 }, { x: 3, y: 3 }, { x: 4, y: 4 }] }
+        message: "Las diagonales tambien sirven: une esta cadena de cuatro cerezas del centro.",
+        action: { type: "merge", path: [{ x: 2, y: 2 }, { x: 3, y: 3 }, { x: 4, y: 4 }, { x: 5, y: 5 }] }
       }
     ];
   }
@@ -144,13 +168,13 @@ function mergeSteps(mode) {
   return [
     {
       board: MERGE_PAIR_BOARD,
-      message: `Tutorial ${MODE_TIPS[mode] ?? "basico"} Arrastra las dos cerezas de abajo de izquierda a derecha.`,
-      action: { type: "merge", path: [{ x: 0, y: 4 }, { x: 1, y: 4 }] }
+      message: `Tutorial ${MODE_TIPS[mode] ?? "basico"} Arrastra las dos cerezas iluminadas del centro de izquierda a derecha.`,
+      action: { type: "merge", path: [{ x: 3, y: 3 }, { x: 4, y: 3 }] }
     },
     {
       board: MERGE_CHAIN_BOARD,
       message: "Ahora practica una cadena diagonal de cuatro cerezas para crear una fruta mucho mas potente.",
-      action: { type: "merge", path: [{ x: 1, y: 1 }, { x: 2, y: 2 }, { x: 3, y: 3 }, { x: 4, y: 4 }] }
+      action: { type: "merge", path: [{ x: 2, y: 2 }, { x: 3, y: 3 }, { x: 4, y: 4 }, { x: 5, y: 5 }] }
     }
   ];
 }
@@ -160,13 +184,13 @@ function match3Steps(mode) {
     return [
       {
         board: MATCH3_CLEANUP_BOARD,
-        message: "Tutorial Match 3 limpieza: intercambia la cereza central derecha con la uva para formar tres cerezas verticales.",
-        action: { type: "swap", from: { x: 3, y: 2 }, to: { x: 2, y: 2 } }
+        message: "Tutorial Match 3 limpieza: baja la cereza iluminada para formar tres cerezas en fila.",
+        action: { type: "swap", from: { x: 3, y: 3 }, to: { x: 3, y: 4 } }
       },
       {
         board: MATCH3_ROW_BOARD,
         message: "En limpieza no se rellenaria el tablero. Practica ahora una linea horizontal de tres.",
-        action: { type: "swap", from: { x: 2, y: 1 }, to: { x: 2, y: 2 } }
+        action: { type: "swap", from: { x: 3, y: 3 }, to: { x: 3, y: 4 } }
       }
     ];
   }
@@ -175,13 +199,13 @@ function match3Steps(mode) {
     return [
       {
         board: MATCH3_OBSTACLE_BOARD,
-        message: "Tutorial Match 3 obstaculos: no puedes intercambiar rocas; crea la linea de cerezas marcada.",
-        action: { type: "swap", from: { x: 2, y: 1 }, to: { x: 2, y: 2 } }
+        message: "Tutorial Match 3 obstaculos: crea la linea de cerezas junto a la roca marcada para romperla.",
+        action: { type: "swap", from: { x: 3, y: 3 }, to: { x: 3, y: 4 } }
       },
       {
         board: MATCH3_COLUMN_BOARD,
         message: "Ahora crea una linea vertical intercambiando la cereza de la derecha hacia el centro.",
-        action: { type: "swap", from: { x: 3, y: 2 }, to: { x: 2, y: 2 } }
+        action: { type: "swap", from: { x: 4, y: 3 }, to: { x: 3, y: 3 } }
       }
     ];
   }
@@ -189,13 +213,13 @@ function match3Steps(mode) {
   return [
     {
       board: MATCH3_ROW_BOARD,
-      message: `Tutorial Match 3 ${MODE_TIPS[mode] ?? "basico"} Intercambia la cereza de arriba con la uva de abajo para formar tres cerezas en fila.`,
-      action: { type: "swap", from: { x: 2, y: 1 }, to: { x: 2, y: 2 } }
+      message: `Tutorial Match 3 ${MODE_TIPS[mode] ?? "basico"} Baja la cereza iluminada para formar tres cerezas en fila.`,
+      action: { type: "swap", from: { x: 3, y: 3 }, to: { x: 3, y: 4 } }
     },
     {
       board: MATCH3_COLUMN_BOARD,
       message: "Ahora crea una linea vertical: mueve la cereza de la derecha al centro.",
-      action: { type: "swap", from: { x: 3, y: 2 }, to: { x: 2, y: 2 } }
+      action: { type: "swap", from: { x: 4, y: 3 }, to: { x: 3, y: 3 } }
     }
   ];
 }
@@ -238,4 +262,11 @@ export function tutorialTargets(step) {
   if (step.action.type === "merge") return step.action.path;
   if (step.action.type === "swap") return [step.action.from, step.action.to];
   return [];
+}
+
+export function tutorialStart(step) {
+  if (!step) return null;
+  if (step.action.type === "merge") return step.action.path[0];
+  if (step.action.type === "swap") return step.action.from;
+  return null;
 }
