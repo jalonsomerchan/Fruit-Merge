@@ -1,4 +1,4 @@
-const CACHE_NAME = "fruit-merge-v1";
+const CACHE_NAME = "fruit-merge-v2";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -30,6 +30,26 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+function isFreshAsset(request) {
+  const destination = request.destination;
+  return destination === "script" || destination === "style" || destination === "worker";
+}
+
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE_NAME);
+  try {
+    const response = await fetch(request);
+    if (response && response.status === 200 && response.type !== "opaque") {
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    throw error;
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 
@@ -37,16 +57,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put("/", copy));
-          return response;
-        })
-        .catch(() => caches.match("/").then((response) => response || caches.match("/index.html")))
-    );
+  if (request.mode === "navigate" || isFreshAsset(request)) {
+    event.respondWith(networkFirst(request).catch(() => caches.match("/").then((response) => response || caches.match("/index.html"))));
     return;
   }
 
