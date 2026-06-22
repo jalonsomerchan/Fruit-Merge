@@ -39,7 +39,6 @@ const GAME_MODES = {
 };
 
 const DIFFICULTIES = {
-  5: "tutorial",
   8: "easy",
   9: "medium",
   10: "hard"
@@ -103,6 +102,7 @@ function boot(size = game.size, difficulty = game.difficulty) {
   game.tutorial = game.difficulty === "tutorial" ? createTutorial(game.variant, game.mode) : null;
   game.tutorialStepCompleted = false;
   game.board = makePlayableBoard(size);
+  if (isTutorial() && game.board.length) game.size = game.board.length;
   game.score = 0;
   game.moves = 0;
   clearPath();
@@ -129,8 +129,29 @@ function isTutorial() {
   return Boolean(game.tutorial && game.difficulty === "tutorial");
 }
 
+function samePos(a, b) {
+  return a?.x === b?.x && a?.y === b?.y;
+}
+
+function currentStep() {
+  return currentTutorialStep(game.tutorial);
+}
+
+function isTutorialTarget(pos) {
+  if (!isTutorial() || !pos) return false;
+  return tutorialTargets(currentStep()).some((target) => samePos(target, pos));
+}
+
+function isTutorialMergeEndpoint(pos) {
+  if (!isTutorial() || !pos) return false;
+  const step = currentStep();
+  if (step?.action?.type !== "merge") return false;
+  const path = step.action.path;
+  return samePos(path[0], pos) || samePos(path.at(-1), pos);
+}
+
 function makePlayableBoard(size) {
-  if (isTutorial()) return currentTutorialStep(game.tutorial)?.board() ?? makeBoardForMode(size);
+  if (isTutorial()) return currentStep()?.board() ?? makeBoardForMode(size);
 
   let board = makeBoardForMode(size);
   let guard = 0;
@@ -173,7 +194,7 @@ function placeObstacles(board, total) {
 }
 
 function startMessage() {
-  if (isTutorial()) return currentTutorialStep(game.tutorial)?.message ?? "Tutorial listo.";
+  if (isTutorial()) return currentStep()?.message ?? "Tutorial listo.";
 
   if (isMatch3Variant()) {
     if (game.mode === "timed") return `Match 3 contrarreloj: combina antes de ${TIMED_LIMITS[game.difficulty]}s.`;
@@ -207,7 +228,7 @@ function updateTutorialTargets() {
   game.tutorialStartKey = "";
   if (!isTutorial()) return;
 
-  const step = currentTutorialStep(game.tutorial);
+  const step = currentStep();
   tutorialTargets(step).forEach((pos) => game.tutorialTargetKeys.add(posKey(pos)));
 
   if (step?.action?.type === "merge") game.tutorialStartKey = posKey(step.action.path[0]);
@@ -320,6 +341,11 @@ function beginMergePath(pos) {
     return;
   }
 
+  if (isTutorial() && !isTutorialMergeEndpoint(pos)) {
+    draw("Empieza arrastrando desde uno de los extremos iluminados.");
+    return;
+  }
+
   const tile = getTile(game.board, pos);
   if (!isFruitTile(tile) || tile.level >= MAX_MERGE_LEVEL) return;
   game.origin = pos;
@@ -352,6 +378,8 @@ function extendMergePath(pos) {
 
   if (existing) return;
 
+  if (isTutorial() && !isTutorialTarget(pos)) return;
+
   const last = game.path.at(-1);
   const startTile = getTile(game.board, game.origin);
   const tile = getTile(game.board, pos);
@@ -378,29 +406,46 @@ async function endMergePath(pos) {
 
 function beginMatch3Swap(pos) {
   if (game.locked || game.gameOver) return;
+
+  if (isTutorial() && !isTutorialTarget(pos)) {
+    draw("Toca una de las dos casillas iluminadas.");
+    return;
+  }
+
   const tile = getTile(game.board, pos);
   if (!isFruitTile(tile)) return;
   game.swapFrom = pos;
   clearPath();
-  draw(isTutorial() ? "Suelta en la otra casilla iluminada." : "Suelta sobre una fruta vecina para intercambiar.");
+  draw(isTutorial() ? "Ahora toca o arrastra hasta la otra casilla iluminada." : "Suelta sobre una fruta vecina para intercambiar.");
 }
 
 async function endMatch3Swap(pos) {
   if (game.locked || game.gameOver || !game.swapFrom) return;
   const from = game.swapFrom;
-  clearSwapSelection();
-
   const target = pos ?? from;
-  if (!target || (target.x === from.x && target.y === from.y)) {
+
+  if (!target || samePos(target, from)) {
+    if (isTutorial()) {
+      draw("Primera casilla seleccionada. Ahora toca la otra iluminada.");
+      return;
+    }
+
+    clearSwapSelection();
     draw("Intercambio cancelado.");
     return;
   }
 
+  if (isTutorial() && !isExpectedSwap(currentStep(), from, target)) {
+    draw("Usa la otra casilla iluminada para completar el paso.");
+    return;
+  }
+
+  clearSwapSelection();
   await tryMatch3Swap(from, target);
 }
 
 async function tryMatch3Swap(from, to) {
-  if (isTutorial() && !isExpectedSwap(currentTutorialStep(game.tutorial), from, to)) {
+  if (isTutorial() && !isExpectedSwap(currentStep(), from, to)) {
     draw("En el tutorial tienes que usar las dos casillas iluminadas.");
     return;
   }
@@ -423,7 +468,7 @@ async function tryMatch3Swap(from, to) {
     swapTiles(game.board, from, to);
     game.moves -= 1;
     game.locked = false;
-    draw("Ese movimiento no forma ninguna linea.");
+    draw(isTutorial() ? "Ese paso no ha creado una linea. Prueba de nuevo con las casillas marcadas." : "Ese movimiento no forma ninguna linea.");
     return;
   }
 
@@ -481,7 +526,7 @@ function isOrthogonalAdjacent(a, b) {
 }
 
 async function mergePath() {
-  if (isTutorial() && !isExpectedMergePath(currentTutorialStep(game.tutorial), game.path)) {
+  if (isTutorial() && !isExpectedMergePath(currentStep(), game.path)) {
     cancelMergePath("En el tutorial tienes que seguir exactamente las casillas iluminadas.");
     return;
   }
@@ -597,10 +642,11 @@ function advanceTutorialIfNeeded() {
   game.collecting.clear();
   game.exploding.clear();
   game.popped = null;
-  game.board = currentTutorialStep(game.tutorial).board();
+  game.board = currentStep().board();
+  game.size = game.board.length || game.size;
   ui.board.replaceChildren();
   resetRenderer();
-  draw(currentTutorialStep(game.tutorial).message);
+  draw(currentStep().message);
   return true;
 }
 
