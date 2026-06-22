@@ -77,7 +77,7 @@ function rebuildPathKeys() {
 }
 
 function mergeLevelBoost(groupSize) {
-  return Math.ceil((groupSize - 1) / 2);
+  return Math.ceil(groupSize / 2);
 }
 
 function beginMergePath(pos) {
