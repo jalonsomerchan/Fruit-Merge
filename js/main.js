@@ -14,7 +14,10 @@ const GAME_MODES = {
   normal: { label: "Normal" },
   timed: { label: "Contrarreloj" },
   explosive: { label: "Explosivo" },
-  simple: { label: "Simple" }
+  simple: { label: "Simple" },
+  limited: { label: "Movimientos" },
+  obstacles: { label: "Obstaculos" },
+  cleanup: { label: "Limpieza" }
 };
 
 const DIFFICULTIES = {
@@ -33,6 +36,18 @@ const AREA_CLEAR_INTERVALS = {
   easy: 15,
   medium: 10,
   hard: 7
+};
+
+const MOVE_LIMITS = {
+  easy: 35,
+  medium: 25,
+  hard: 18
+};
+
+const OBSTACLE_COUNTS = {
+  easy: 6,
+  medium: 10,
+  hard: 14
 };
 
 const game = {
@@ -79,19 +94,49 @@ function boot(size = game.size, difficulty = game.difficulty) {
 }
 
 function makePlayableBoard(size) {
-  let board = makeBoard(size);
+  let board = makeBoardForMode(size);
   let guard = 0;
-  while (!hasPossibleMove(board) && guard < 40) {
-    board = makeBoard(size);
+  while (!hasPossibleMove(board) && guard < 80) {
+    board = makeBoardForMode(size);
     guard += 1;
   }
   return board;
+}
+
+function makeBoardForMode(size) {
+  const board = makeBoard(size);
+  if (game.mode === "obstacles") placeObstacles(board, OBSTACLE_COUNTS[game.difficulty] ?? OBSTACLE_COUNTS.easy);
+  return board;
+}
+
+function placeObstacles(board, total) {
+  const size = board.length;
+  const used = new Set();
+  let guard = 0;
+
+  while (used.size < total && guard < size * size * 4) {
+    const x = Math.floor(Math.random() * size);
+    const y = Math.floor(Math.random() * size);
+    const key = posKey({ x, y });
+    guard += 1;
+    if (used.has(key)) continue;
+
+    used.add(key);
+    board[y][x] = {
+      id: `obstacle-${Date.now()}-${x}-${y}-${used.size}`,
+      type: "obstacle",
+      fresh: false
+    };
+  }
 }
 
 function startMessage() {
   if (game.mode === "timed") return `Contrarreloj: fusiona antes de ${TIMED_LIMITS[game.difficulty]}s.`;
   if (game.mode === "explosive") return `Explosivo: se limpia una zona cada ${AREA_CLEAR_INTERVALS[game.difficulty]}s.`;
   if (game.mode === "simple") return "Simple: las frutas fusionadas desaparecen.";
+  if (game.mode === "limited") return `Movimientos limitados: tienes ${MOVE_LIMITS[game.difficulty]} fusiones.`;
+  if (game.mode === "obstacles") return "Obstaculos: las rocas bloquean el tablero.";
+  if (game.mode === "cleanup") return "Limpieza: vacia el tablero sin que aparezcan frutas nuevas.";
   return "Nueva partida lista.";
 }
 
@@ -114,6 +159,24 @@ function updateModeHud() {
 
   if (game.mode === "explosive") {
     ui.modeTimer.textContent = `${AREA_CLEAR_INTERVALS[game.difficulty]}s`;
+    ui.modeTimer.hidden = false;
+    return;
+  }
+
+  if (game.mode === "limited") {
+    ui.modeTimer.textContent = `${getRemainingMoves()} mov.`;
+    ui.modeTimer.hidden = false;
+    return;
+  }
+
+  if (game.mode === "obstacles") {
+    ui.modeTimer.textContent = `${countObstacles()} obs.`;
+    ui.modeTimer.hidden = false;
+    return;
+  }
+
+  if (game.mode === "cleanup") {
+    ui.modeTimer.textContent = `${countFruitTiles()} frutas`;
     ui.modeTimer.hidden = false;
     return;
   }
@@ -148,10 +211,26 @@ function mergeLevelBoost(groupSize) {
   return Math.ceil(groupSize / 2);
 }
 
+function isFruitTile(tile) {
+  return Boolean(tile && tile.type !== "obstacle");
+}
+
+function countFruitTiles() {
+  return game.board.flat().filter(isFruitTile).length;
+}
+
+function countObstacles() {
+  return game.board.flat().filter((tile) => tile?.type === "obstacle").length;
+}
+
+function getRemainingMoves() {
+  return Math.max(0, (MOVE_LIMITS[game.difficulty] ?? MOVE_LIMITS.easy) - game.moves);
+}
+
 function beginMergePath(pos) {
   if (game.locked || game.gameOver) return;
   const tile = getTile(game.board, pos);
-  if (!tile || tile.level >= MAX_MERGE_LEVEL) return;
+  if (!isFruitTile(tile) || tile.level >= MAX_MERGE_LEVEL) return;
   game.origin = pos;
   game.path = [pos];
   rebuildPathKeys();
@@ -205,13 +284,18 @@ async function mergePath() {
   clearTurnTimer();
 
   if (game.mode === "simple") {
-    await mergeSimplePath();
+    await mergeClearingPath({ spawn: true, label: "Fusion simple completada." });
+    return;
+  }
+
+  if (game.mode === "cleanup") {
+    await mergeClearingPath({ spawn: false, label: "Frutas limpiadas." });
     return;
   }
 
   const destination = game.path.at(-1);
   const destinationTile = getTile(game.board, destination);
-  if (!destinationTile) {
+  if (!isFruitTile(destinationTile)) {
     game.locked = false;
     startTurnTimer();
     return;
@@ -255,7 +339,7 @@ async function mergePath() {
   finishTurn();
 }
 
-async function mergeSimplePath() {
+async function mergeClearingPath({ spawn, label }) {
   const destination = game.path.at(-1);
   const originTile = getTile(game.board, game.origin);
   const groupSize = game.path.length;
@@ -276,10 +360,10 @@ async function mergeSimplePath() {
   game.collecting.clear();
   burst(ui, destination);
   clearPath();
-  draw("Fusion simple completada.");
+  draw(label);
   await wait(MERGE_DELAY);
 
-  settleBoard(game.board);
+  settleBoard(game.board, { spawn });
   draw();
   await wait(MOVE_DELAY);
   finishTurn();
@@ -288,10 +372,22 @@ async function mergeSimplePath() {
 function finishTurn() {
   if (game.gameOver) return;
   game.locked = false;
-  if (!hasPossibleMove(game.board)) {
-    endGame("La partida ha terminado: no hay movimientos posibles.");
+
+  if (game.mode === "cleanup" && countFruitTiles() === 0) {
+    endGame("Limpieza completada: tablero vacio.");
     return;
   }
+
+  if (game.mode === "limited" && getRemainingMoves() <= 0) {
+    endGame("Sin movimientos: partida terminada.");
+    return;
+  }
+
+  if (!hasPossibleMove(game.board)) {
+    endGame(game.mode === "cleanup" ? "No quedan fusiones para seguir limpiando." : "La partida ha terminado: no hay movimientos posibles.");
+    return;
+  }
+
   draw("Traza una cadena de frutas iguales para fusionar.");
   startTurnTimer();
 }
@@ -314,7 +410,8 @@ function getAreaTiles(origin) {
   const removed = [];
   for (let y = origin.y - 1; y <= origin.y + 1; y += 1) {
     for (let x = origin.x - 1; x <= origin.x + 1; x += 1) {
-      if (!game.board[y]?.[x]) continue;
+      const tile = game.board[y]?.[x];
+      if (!isFruitTile(tile)) continue;
       removed.push({ x, y });
     }
   }
@@ -372,7 +469,7 @@ async function clearRandomArea() {
   const filled = [];
   for (let y = 0; y < game.size; y += 1) {
     for (let x = 0; x < game.size; x += 1) {
-      if (game.board[y][x]) filled.push({ x, y });
+      if (isFruitTile(game.board[y][x])) filled.push({ x, y });
     }
   }
   if (!filled.length) return;
