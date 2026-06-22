@@ -96,7 +96,7 @@ const MATCH3_CLEANUP_BOARD = () => boardFrom([
   ". . . . .",
   ". S C B .",
   ". O G C .",
-  ". C G C .",
+  ". C C O .",
   ". . . . ."
 ]);
 
@@ -216,11 +216,15 @@ function samePos(a, b) {
   return a?.x === b?.x && a?.y === b?.y;
 }
 
+function samePath(a, b) {
+  if (a.length !== b.length) return false;
+  return a.every((pos, index) => samePos(pos, b[index]));
+}
+
 export function isExpectedMergePath(step, path) {
   if (step?.action?.type !== "merge") return false;
   const expected = step.action.path;
-  if (expected.length !== path.length) return false;
-  return expected.every((pos, index) => samePos(pos, path[index]));
+  return samePath(expected, path) || samePath(expected, [...path].reverse());
 }
 
 export function isExpectedSwap(step, from, to) {
