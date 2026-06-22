@@ -5,6 +5,10 @@ function posFromElement(element) {
   return { x, y };
 }
 
+function samePos(a, b) {
+  return a?.x === b?.x && a?.y === b?.y;
+}
+
 function posFromBoardPoint(board, game, clientX, clientY) {
   const rect = board.getBoundingClientRect();
   if (
@@ -35,6 +39,11 @@ export function bindInput(ui, game, handlers) {
     const pos = posFromEvent(event);
     if (!pos || game.locked) return;
 
+    if (game.variant === "match3" && game.swapFrom && !samePos(game.swapFrom, pos)) {
+      handlers.end(pos);
+      return;
+    }
+
     pointerDown = true;
     lastPos = pos;
     activeNode = event.target.closest(".tile");
@@ -60,7 +69,14 @@ export function bindInput(ui, game, handlers) {
       posFromBoardPoint(ui.board, game, event.clientX, event.clientY) ??
       posFromElement(document.elementFromPoint(event.clientX, event.clientY)) ??
       lastPos;
+
+    const keepMatch3Selection = game.variant === "match3" && game.swapFrom && samePos(game.swapFrom, pos);
     cleanupTouch();
+
+    if (keepMatch3Selection) {
+      return;
+    }
+
     handlers.end(pos);
   });
 
