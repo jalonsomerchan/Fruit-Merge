@@ -29,12 +29,14 @@ function posFromEvent(event) {
 export function bindInput(ui, game, handlers) {
   let pointerDown = false;
   let activeNode = null;
+  let lastPos = null;
 
   ui.board.addEventListener("pointerdown", (event) => {
     const pos = posFromEvent(event);
     if (!pos || game.locked) return;
 
     pointerDown = true;
+    lastPos = pos;
     activeNode = event.target.closest(".tile");
     activeNode.setPointerCapture(event.pointerId);
     activeNode.classList.add("is-touching");
@@ -46,13 +48,20 @@ export function bindInput(ui, game, handlers) {
     const pos =
       posFromBoardPoint(ui.board, game, event.clientX, event.clientY) ??
       posFromElement(document.elementFromPoint(event.clientX, event.clientY));
-    if (pos) handlers.move(pos);
+    if (pos) {
+      lastPos = pos;
+      handlers.move(pos);
+    }
   });
 
-  ui.board.addEventListener("pointerup", () => {
+  ui.board.addEventListener("pointerup", (event) => {
     if (!pointerDown) return;
+    const pos =
+      posFromBoardPoint(ui.board, game, event.clientX, event.clientY) ??
+      posFromElement(document.elementFromPoint(event.clientX, event.clientY)) ??
+      lastPos;
     cleanupTouch();
-    handlers.end();
+    handlers.end(pos);
   });
 
   ui.board.addEventListener("pointercancel", () => {
@@ -62,6 +71,7 @@ export function bindInput(ui, game, handlers) {
 
   function cleanupTouch() {
     pointerDown = false;
+    lastPos = null;
     activeNode?.classList.remove("is-touching");
     activeNode = null;
   }
