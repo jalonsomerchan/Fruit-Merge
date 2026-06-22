@@ -1,5 +1,36 @@
 import { createTile } from "./board.js";
 
+function isObstacle(tile) {
+  return tile?.type === "obstacle";
+}
+
+function hasAdjacentGap(board, x, y) {
+  for (let dy = -1; dy <= 1; dy += 1) {
+    for (let dx = -1; dx <= 1; dx += 1) {
+      if (dx === 0 && dy === 0) continue;
+      const row = board[y + dy];
+      if (!row) continue;
+      if (row[x + dx] === null) return true;
+    }
+  }
+  return false;
+}
+
+function breakObstaclesNextToGaps(board) {
+  const broken = [];
+
+  for (let y = 0; y < board.length; y += 1) {
+    for (let x = 0; x < board.length; x += 1) {
+      if (isObstacle(board[y][x]) && hasAdjacentGap(board, x, y)) {
+        broken.push({ x, y });
+      }
+    }
+  }
+
+  for (const { x, y } of broken) board[y][x] = null;
+  return broken;
+}
+
 function settleSegment(board, x, fromY, toY, spawn) {
   const kept = [];
 
@@ -15,9 +46,11 @@ function settleSegment(board, x, fromY, toY, spawn) {
 }
 
 export function settleBoard(board, options = {}) {
-  const { spawn = true } = options;
+  const { spawn = true, breakObstacles = true } = options;
   const size = board.length;
   const spawned = [];
+
+  if (breakObstacles) breakObstaclesNextToGaps(board);
 
   for (let x = 0; x < size; x += 1) {
     let segmentBottom = size - 1;
