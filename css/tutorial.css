@@ -20,6 +20,60 @@
   background: rgba(102, 46, 0, 0.72);
 }
 
+.tutorial-marker {
+  position: absolute;
+  z-index: 42;
+  left: calc((var(--x) + 0.5) * 100% / var(--size));
+  top: calc((var(--y) + 0.5) * 100% / var(--size));
+  width: calc(78% / var(--size));
+  height: calc(78% / var(--size));
+  display: grid;
+  place-items: center;
+  border-radius: 24%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: clamp(1.05rem, 5vw, 2.35rem);
+  font-weight: 1000;
+  text-shadow: 0 2px 6px rgba(60, 24, 0, 0.55);
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 35% 24%, rgba(255, 255, 255, 0.9), transparent 32%),
+    linear-gradient(135deg, rgba(255, 174, 0, 0.96), rgba(255, 78, 105, 0.92));
+  box-shadow:
+    0 0 0 4px rgba(255, 255, 255, 0.95),
+    0 0 0 9px rgba(255, 160, 20, 0.42),
+    0 18px 32px rgba(111, 48, 0, 0.34);
+  animation: tutorialMarkerPulse 780ms ease-in-out infinite alternate;
+}
+
+.tutorial-marker.is-start {
+  background:
+    radial-gradient(circle at 35% 24%, rgba(255, 255, 255, 0.92), transparent 32%),
+    linear-gradient(135deg, rgba(39, 213, 118, 0.98), rgba(31, 156, 255, 0.94));
+  box-shadow:
+    0 0 0 4px rgba(255, 255, 255, 0.95),
+    0 0 0 9px rgba(31, 198, 127, 0.46),
+    0 18px 34px rgba(8, 83, 95, 0.36);
+}
+
+.tutorial-marker.is-selected {
+  opacity: 0.58;
+  transform: translate(-50%, -50%) scale(0.9);
+  animation: none;
+}
+
+.tutorial-marker.is-next {
+  z-index: 44;
+  transform: translate(-50%, -50%) scale(1.18);
+  background:
+    radial-gradient(circle at 35% 24%, rgba(255, 255, 255, 0.95), transparent 32%),
+    linear-gradient(135deg, rgba(255, 46, 115, 0.98), rgba(151, 72, 255, 0.96));
+  box-shadow:
+    0 0 0 5px rgba(255, 255, 255, 0.96),
+    0 0 0 13px rgba(255, 46, 115, 0.52),
+    0 0 38px rgba(151, 72, 255, 0.86);
+}
+
 .tile.is-tutorial-target {
   z-index: 7;
   background:
@@ -64,11 +118,37 @@
   }
 }
 
+@keyframes tutorialMarkerPulse {
+  from {
+    filter: brightness(1);
+  }
+  to {
+    filter: brightness(1.2) saturate(1.18);
+  }
+}
+
 @media (max-width: 700px) {
   .tutorial-card::after {
     top: 10px;
     right: 10px;
     font-size: 0.58rem;
+  }
+
+  .tutorial-marker {
+    width: calc(88% / var(--size));
+    height: calc(88% / var(--size));
+    font-size: clamp(1.15rem, 7vw, 2.1rem);
+    box-shadow:
+      0 0 0 3px rgba(255, 255, 255, 0.96),
+      0 0 0 8px rgba(255, 160, 20, 0.42),
+      0 14px 26px rgba(111, 48, 0, 0.3);
+  }
+
+  .tutorial-marker.is-next {
+    box-shadow:
+      0 0 0 4px rgba(255, 255, 255, 0.96),
+      0 0 0 11px rgba(255, 46, 115, 0.5),
+      0 0 32px rgba(151, 72, 255, 0.8);
   }
 
   .tile.is-tutorial-target {
