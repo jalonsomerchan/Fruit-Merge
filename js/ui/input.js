@@ -5,6 +5,23 @@ function posFromElement(element) {
   return { x, y };
 }
 
+function posFromBoardPoint(board, game, clientX, clientY) {
+  const rect = board.getBoundingClientRect();
+  if (
+    clientX < rect.left ||
+    clientX > rect.right ||
+    clientY < rect.top ||
+    clientY > rect.bottom
+  ) {
+    return null;
+  }
+
+  const cellSize = rect.width / game.size;
+  const x = Math.min(game.size - 1, Math.max(0, Math.floor((clientX - rect.left) / cellSize)));
+  const y = Math.min(game.size - 1, Math.max(0, Math.floor((clientY - rect.top) / cellSize)));
+  return { x, y };
+}
+
 function posFromEvent(event) {
   return posFromElement(event.target);
 }
@@ -26,7 +43,9 @@ export function bindInput(ui, game, handlers) {
 
   ui.board.addEventListener("pointermove", (event) => {
     if (!pointerDown || game.locked) return;
-    const pos = posFromElement(document.elementFromPoint(event.clientX, event.clientY));
+    const pos =
+      posFromBoardPoint(ui.board, game, event.clientX, event.clientY) ??
+      posFromElement(document.elementFromPoint(event.clientX, event.clientY));
     if (pos) handlers.move(pos);
   });
 
