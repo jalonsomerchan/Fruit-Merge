@@ -1,11 +1,11 @@
-.mode-card[data-mode="candy"] {
+.variant-card[data-variant="match3"] {
   background:
     radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.92), transparent 26%),
     linear-gradient(145deg, rgba(255, 245, 252, 0.96), rgba(211, 236, 255, 0.92) 48%, rgba(255, 226, 170, 0.9));
   border-color: rgba(238, 112, 166, 0.34);
 }
 
-.mode-card[data-mode="candy"] strong {
+.variant-card[data-variant="match3"] strong {
   color: #a61f66;
 }
 
