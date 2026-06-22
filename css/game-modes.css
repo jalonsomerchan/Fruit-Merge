@@ -51,6 +51,10 @@
   line-height: 1.35;
 }
 
+.topbar {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
 .mode-pill {
   min-width: 92px;
   max-width: 128px;
@@ -111,10 +115,6 @@
   .mode-card span {
     margin-top: 4px;
     font-size: 0.9rem;
-  }
-
-  .topbar {
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
   }
 
   .mode-pill {
