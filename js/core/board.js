@@ -27,7 +27,9 @@ export function getTile(board, pos) {
 }
 
 export function areAdjacent(a, b) {
-  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1;
+  const dx = Math.abs(a.x - b.x);
+  const dy = Math.abs(a.y - b.y);
+  return dx <= 1 && dy <= 1 && dx + dy > 0;
 }
 
 export function sameTile(a, b) {
