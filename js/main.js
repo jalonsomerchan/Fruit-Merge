@@ -71,6 +71,11 @@ function clearPath() {
   game.pathKeys.clear();
 }
 
+function cancelMergePath(message = "Movimiento cancelado.") {
+  clearPath();
+  draw(message);
+}
+
 function rebuildPathKeys() {
   game.pathKeys.clear();
   game.path.forEach((pos, index) => game.pathKeys.set(posKey(pos), index + 1));
@@ -95,9 +100,18 @@ function extendMergePath(pos) {
   const key = posKey(pos);
   const existing = game.pathKeys.get(key);
 
+  if (existing === 1 && game.path.length > 1) {
+    cancelMergePath();
+    return;
+  }
+
   if (existing === game.path.length - 1) {
     game.path.pop();
     rebuildPathKeys();
+    if (game.path.length === 1) {
+      cancelMergePath();
+      return;
+    }
     draw("Camino ajustado.");
     return;
   }
@@ -117,8 +131,7 @@ function extendMergePath(pos) {
 async function endMergePath() {
   if (game.locked || !game.path.length) return;
   if (game.path.length < 2) {
-    clearPath();
-    draw("Traza al menos dos frutas iguales.");
+    cancelMergePath();
     return;
   }
   await mergePath();
@@ -235,8 +248,7 @@ bindInput(ui, game, {
   move: extendMergePath,
   end: endMergePath,
   cancel: () => {
-    clearPath();
-    draw("Fusion cancelada.");
+    cancelMergePath("Fusion cancelada.");
   }
 });
 renderStats(ui, game);
