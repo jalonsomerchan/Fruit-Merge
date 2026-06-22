@@ -6,6 +6,7 @@
     <title>Fruit Merge</title>
     <link rel="stylesheet" href="/css/styles.css" />
     <link rel="stylesheet" href="/css/mobile-visibility.css" />
+    <link rel="stylesheet" href="/css/game-modes.css" />
   </head>
   <body>
     <main class="app">
@@ -16,19 +17,42 @@
         <button class="primary" id="start-game">Jugar</button>
       </section>
 
+      <section class="screen mode-screen" data-screen="modes">
+        <p class="eyebrow">Elige modo</p>
+        <h2>Como quieres jugar?</h2>
+        <div class="mode-list">
+          <button class="mode-card" data-mode="normal">
+            <strong>Normal</strong>
+            <span>El modo clasico: fusiona frutas y busca la mejor puntuacion.</span>
+          </button>
+          <button class="mode-card" data-mode="timed">
+            <strong>Contrarreloj</strong>
+            <span>Haz una fusion antes de que termine el tiempo o se acaba la partida.</span>
+          </button>
+          <button class="mode-card" data-mode="explosive">
+            <strong>Explosivo</strong>
+            <span>Cada cierto tiempo se elimina una fruta y tambien las de alrededor.</span>
+          </button>
+          <button class="mode-card" data-mode="simple">
+            <strong>Simple</strong>
+            <span>Al fusionar frutas, desaparecen todas las seleccionadas.</span>
+          </button>
+        </div>
+      </section>
+
       <section class="screen level-screen" data-screen="levels">
         <p class="eyebrow">Elige nivel</p>
         <h2>Selecciona tablero</h2>
         <div class="level-list">
-          <button class="level-card" data-size="8">
+          <button class="level-card" data-size="8" data-difficulty="easy">
             <strong>Facil</strong>
             <span>8x8 · partida rapida</span>
           </button>
-          <button class="level-card" data-size="9">
+          <button class="level-card" data-size="9" data-difficulty="medium">
             <strong>Medio</strong>
             <span>9x9 · mas fruta, mas opciones</span>
           </button>
-          <button class="level-card" data-size="10">
+          <button class="level-card" data-size="10" data-difficulty="hard">
             <strong>Dificil</strong>
             <span>10x10 · maxima resistencia</span>
           </button>
@@ -42,6 +66,10 @@
             <strong id="score">0</strong>
           </div>
           <p id="status">Fusiona parejas iguales.</p>
+          <div class="mode-pill" id="mode-pill">
+            <span id="mode-label">Normal</span>
+            <strong id="mode-timer"></strong>
+          </div>
           <button class="menu-button" id="menu-toggle" aria-label="Abrir menu">
             <span></span>
             <span></span>
@@ -62,11 +90,12 @@
           </div>
           <button id="restart">Reiniciar</button>
           <button id="change-level">Cambiar nivel</button>
+          <button id="change-mode">Cambiar modo</button>
         </div>
       </section>
 
       <dialog id="game-over" class="modal">
-        <h2>Sin movimientos</h2>
+        <h2>Partida terminada</h2>
         <p>Tu puntuacion final ha sido <strong id="final-score">0</strong>.</p>
         <button id="play-again">Jugar otra vez</button>
       </dialog>
