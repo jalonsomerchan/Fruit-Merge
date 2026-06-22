@@ -2,8 +2,19 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#ff7a1a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Fruit Merge" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="application-name" content="Fruit Merge" />
+    <meta name="description" content="Fusiona frutas, juega en modo normal o Match 3 y supera retos con distintos modos de juego." />
     <title>Fruit Merge</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/icons/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/icons/favicon-32x32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/icons/apple-touch-icon.png" />
     <link rel="stylesheet" href="/css/styles.css" />
     <link rel="stylesheet" href="/css/mobile-visibility.css" />
     <link rel="stylesheet" href="/css/game-modes.css" />
@@ -138,5 +149,6 @@
 
     <script type="module" src="/js/main.js"></script>
     <script type="module" src="/js/ui/timed-warning.js"></script>
+    <script type="module" src="/js/ui/pwa.js"></script>
   </body>
 </html>
