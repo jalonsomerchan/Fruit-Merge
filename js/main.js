@@ -2,6 +2,12 @@ import { MAX_MERGE_LEVEL, START_SIZE, MERGE_DELAY, MOVE_DELAY, STORAGE_KEY } fro
 import { areAdjacent, getTile, makeBoard, sameTile } from "./core/board.js";
 import { settleBoard } from "./core/gravity.js";
 import { hasPossibleMove } from "./core/moves.js";
+import {
+  findMatch3Groups,
+  hasMatch3Move,
+  makeMatch3Board,
+  swapTiles
+} from "./core/match3.js";
 import { mergeScore } from "./core/scoring.js";
 import { ui } from "./ui/elements.js";
 import { bindInput } from "./ui/input.js";
@@ -17,7 +23,8 @@ const GAME_MODES = {
   simple: { label: "Simple" },
   limited: { label: "Movimientos" },
   obstacles: { label: "Obstaculos" },
-  cleanup: { label: "Limpieza" }
+  cleanup: { label: "Limpieza" },
+  candy: { label: "Match 3" }
 };
 
 const DIFFICULTIES = {
@@ -61,6 +68,7 @@ const game = {
   origin: null,
   path: [],
   pathKeys: new Map(),
+  swapFrom: null,
   collecting: new Map(),
   exploding: new Set(),
   popped: null,
@@ -79,6 +87,7 @@ function boot(size = game.size, difficulty = game.difficulty) {
   game.score = 0;
   game.moves = 0;
   clearPath();
+  clearSwapSelection();
   game.collecting.clear();
   game.exploding.clear();
   game.popped = null;
@@ -96,7 +105,7 @@ function boot(size = game.size, difficulty = game.difficulty) {
 function makePlayableBoard(size) {
   let board = makeBoardForMode(size);
   let guard = 0;
-  while (!hasPossibleMove(board) && guard < 80) {
+  while (!boardHasPossibleMove(board) && guard < 80) {
     board = makeBoardForMode(size);
     guard += 1;
   }
@@ -104,9 +113,14 @@ function makePlayableBoard(size) {
 }
 
 function makeBoardForMode(size) {
+  if (game.mode === "candy") return makeMatch3Board(size);
   const board = makeBoard(size);
   if (game.mode === "obstacles") placeObstacles(board, OBSTACLE_COUNTS[game.difficulty] ?? OBSTACLE_COUNTS.easy);
   return board;
+}
+
+function boardHasPossibleMove(board) {
+  return game.mode === "candy" ? hasMatch3Move(board) : hasPossibleMove(board);
 }
 
 function placeObstacles(board, total) {
@@ -137,6 +151,7 @@ function startMessage() {
   if (game.mode === "limited") return `Movimientos limitados: tienes ${MOVE_LIMITS[game.difficulty]} fusiones.`;
   if (game.mode === "obstacles") return "Obstaculos: las rocas bloquean el tablero.";
   if (game.mode === "cleanup") return "Limpieza: vacia el tablero sin que aparezcan frutas nuevas.";
+  if (game.mode === "candy") return "Match 3: intercambia frutas vecinas para formar lineas de 3 o mas.";
   return "Nueva partida lista.";
 }
 
@@ -181,6 +196,12 @@ function updateModeHud() {
     return;
   }
 
+  if (game.mode === "candy") {
+    ui.modeTimer.textContent = "3+";
+    ui.modeTimer.hidden = false;
+    return;
+  }
+
   ui.modeTimer.textContent = "";
   ui.modeTimer.hidden = true;
 }
@@ -197,8 +218,13 @@ function clearPath() {
   game.pathKeys.clear();
 }
 
+function clearSwapSelection() {
+  game.swapFrom = null;
+}
+
 function cancelMergePath(message = "Movimiento cancelado.") {
   clearPath();
+  clearSwapSelection();
   draw(message);
 }
 
@@ -229,6 +255,11 @@ function getRemainingMoves() {
 
 function beginMergePath(pos) {
   if (game.locked || game.gameOver) return;
+  if (game.mode === "candy") {
+    beginMatch3Swap(pos);
+    return;
+  }
+
   const tile = getTile(game.board, pos);
   if (!isFruitTile(tile) || tile.level >= MAX_MERGE_LEVEL) return;
   game.origin = pos;
@@ -238,6 +269,7 @@ function beginMergePath(pos) {
 }
 
 function extendMergePath(pos) {
+  if (game.mode === "candy") return;
   if (game.locked || game.gameOver || !game.origin || !game.path.length) return;
   const key = posKey(pos);
   const existing = game.pathKeys.get(key);
@@ -270,13 +302,112 @@ function extendMergePath(pos) {
   draw(`${game.path.length} frutas listas para fusionar.`);
 }
 
-async function endMergePath() {
+async function endMergePath(pos) {
+  if (game.mode === "candy") {
+    await endMatch3Swap(pos);
+    return;
+  }
+
   if (game.locked || game.gameOver || !game.path.length) return;
   if (game.path.length < 2) {
     cancelMergePath();
     return;
   }
   await mergePath();
+}
+
+function beginMatch3Swap(pos) {
+  if (game.locked || game.gameOver) return;
+  const tile = getTile(game.board, pos);
+  if (!isFruitTile(tile)) return;
+  game.swapFrom = pos;
+  clearPath();
+  draw("Suelta sobre una fruta vecina para intercambiar.");
+}
+
+async function endMatch3Swap(pos) {
+  if (game.locked || game.gameOver || !game.swapFrom) return;
+  const from = game.swapFrom;
+  clearSwapSelection();
+
+  const target = pos ?? from;
+  if (!target || (target.x === from.x && target.y === from.y)) {
+    draw("Intercambio cancelado.");
+    return;
+  }
+
+  await tryMatch3Swap(from, target);
+}
+
+async function tryMatch3Swap(from, to) {
+  if (!isOrthogonalAdjacent(from, to)) {
+    draw("Intercambia solo frutas vecinas.");
+    return;
+  }
+
+  if (!isFruitTile(getTile(game.board, from)) || !isFruitTile(getTile(game.board, to))) return;
+
+  game.locked = true;
+  swapTiles(game.board, from, to);
+  game.moves += 1;
+  draw("Intercambiando frutas...");
+  await wait(160);
+
+  let groups = findMatch3Groups(game.board);
+  if (!groups.length) {
+    swapTiles(game.board, from, to);
+    game.moves -= 1;
+    game.locked = false;
+    draw("Ese movimiento no forma ninguna linea.");
+    return;
+  }
+
+  await resolveMatch3Cascades(groups);
+  finishTurn();
+}
+
+async function resolveMatch3Cascades(initialGroups = null) {
+  let groups = initialGroups ?? findMatch3Groups(game.board);
+  let combo = 1;
+
+  while (groups.length && !game.gameOver) {
+    const cells = uniquePositions(groups.flat());
+    game.exploding = new Set(cells.map(posKey));
+    const longest = groups.reduce((max, group) => Math.max(max, group.length), 0);
+    draw(combo > 1 ? `Combo x${combo}: ${cells.length} frutas.` : `${cells.length} frutas combinadas.`);
+    await wait(300);
+
+    for (const pos of cells) game.board[pos.y][pos.x] = null;
+    game.score += cells.length * 15 * combo + Math.max(0, longest - 3) * 35 * combo;
+    saveBestScore();
+
+    game.exploding.clear();
+    const center = cells[Math.floor(cells.length / 2)];
+    if (center) burst(ui, center);
+    settleBoard(game.board, { breakObstacles: false });
+    draw("Cascada de frutas...");
+    await wait(MOVE_DELAY + 120);
+
+    groups = findMatch3Groups(game.board);
+    combo += 1;
+  }
+
+  game.locked = false;
+  draw("Intercambia frutas para formar lineas de 3 o mas.");
+}
+
+function uniquePositions(positions) {
+  const seen = new Set();
+  return positions.filter((pos) => {
+    const key = posKey(pos);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function isOrthogonalAdjacent(a, b) {
+  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1;
 }
 
 async function mergePath() {
@@ -383,12 +514,12 @@ function finishTurn() {
     return;
   }
 
-  if (!hasPossibleMove(game.board)) {
+  if (!boardHasPossibleMove(game.board)) {
     endGame(game.mode === "cleanup" ? "No quedan fusiones para seguir limpiando." : "La partida ha terminado: no hay movimientos posibles.");
     return;
   }
 
-  draw("Traza una cadena de frutas iguales para fusionar.");
+  draw(game.mode === "candy" ? "Intercambia frutas para formar lineas de 3 o mas." : "Traza una cadena de frutas iguales para fusionar.");
   startTurnTimer();
 }
 
@@ -496,6 +627,7 @@ function endGame(message) {
   game.gameOver = true;
   clearModeTimers();
   clearPath();
+  clearSwapSelection();
   game.locked = true;
   ui.finalScore.textContent = game.score.toLocaleString("es-ES");
   ui.dialog.showModal();
