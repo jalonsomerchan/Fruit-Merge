@@ -1,4 +1,4 @@
-const CACHE_NAME = "fruit-merge-v2";
+const CACHE_NAME = "fruit-merge-v3";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -32,7 +32,7 @@ self.addEventListener("activate", (event) => {
 
 function isFreshAsset(request) {
   const destination = request.destination;
-  return destination === "script" || destination === "style" || destination === "worker";
+  return destination === "script" || destination === "style" || destination === "worker" || destination === "document";
 }
 
 async function networkFirst(request) {
