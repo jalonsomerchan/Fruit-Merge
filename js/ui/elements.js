@@ -17,6 +17,7 @@ export const ui = {
   changeMode: qs("#change-mode"),
   menuToggle: qs("#menu-toggle"),
   menuPanel: qs("#menu-panel"),
+  variantButtons: [...document.querySelectorAll("[data-variant]")],
   modeButtons: [...document.querySelectorAll("[data-mode]")],
   levelButtons: [...document.querySelectorAll("[data-size]")],
   dialog: qs("#game-over"),
