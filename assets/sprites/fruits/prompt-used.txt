@@ -1,0 +1,13 @@
+Create a 4x4 sprite sheet of clean HD 2D game fruit tile icons for a mobile match-and-merge puzzle game. Solid flat #FF00FF magenta background, no gradients in the background, no text, no labels, no UI, no borders or frames between cells. Exactly 16 equal cells in a 4x4 grid.
+
+Art style: clean hand-painted HD 2D game asset icons, crisp silhouettes, smooth glossy surfaces, controlled highlights, professional casual puzzle game quality, not pixel art.
+
+Each icon must fit fully inside its cell, centered, with magenta margin on all four sides; nothing may cross cell edges. Keep a consistent camera angle, lighting, icon scale, and shadow style across all cells.
+
+Rows/cells:
+1. single cherries, double cherries, triple cherry cluster, golden cherry crown cluster
+2. single strawberry, double strawberry pair, triple strawberry cluster, golden strawberry crown cluster
+3. single orange, double orange pair, triple orange cluster, golden orange crown cluster
+4. single watermelon slice, double watermelon slices, triple watermelon slices, golden watermelon crown cluster
+
+The double/triple/golden forms should clearly read as upgraded merge levels of the same fruit family. Use playful juice highlights, tiny sparkle accents attached close to the fruit only, and transparent-friendly edges against magenta. No detached effects outside the main silhouette.

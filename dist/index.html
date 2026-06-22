@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fruit Merge</title>
+    <script type="module" crossorigin src="/assets/index-BrXuxTin.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-D6_mLe3E.css">
+  </head>
+  <body>
+    <main class="app">
+      <section class="screen start-screen is-active" data-screen="start">
+        <p class="eyebrow">Fruit Merge</p>
+        <h1>Fusiona frutas hasta el nivel 8</h1>
+        <p class="lead">Intercambia piezas vecinas, junta parejas iguales y pelea por la mejor puntuacion.</p>
+        <button class="primary" id="start-game">Jugar</button>
+      </section>
+
+      <section class="screen level-screen" data-screen="levels">
+        <p class="eyebrow">Elige nivel</p>
+        <h2>Selecciona tablero</h2>
+        <div class="level-list">
+          <button class="level-card" data-size="8">
+            <strong>Facil</strong>
+            <span>8x8 · partida rapida</span>
+          </button>
+          <button class="level-card" data-size="9">
+            <strong>Medio</strong>
+            <span>9x9 · mas fruta, mas opciones</span>
+          </button>
+          <button class="level-card" data-size="10">
+            <strong>Dificil</strong>
+            <span>10x10 · maxima resistencia</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="screen game-screen" data-screen="game">
+        <header class="topbar">
+          <div class="score-pill">
+            <span>Puntos</span>
+            <strong id="score">0</strong>
+          </div>
+          <p id="status">Fusiona parejas iguales.</p>
+          <button class="menu-button" id="menu-toggle" aria-label="Abrir menu">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+        </header>
+
+        <div class="board" id="board" aria-label="Tablero de frutas"></div>
+
+        <div class="menu-panel" id="menu-panel" aria-hidden="true">
+          <div>
+            <span class="label">Mejor</span>
+            <strong id="best">0</strong>
+          </div>
+          <div>
+            <span class="label">Movimientos</span>
+            <strong id="moves">0</strong>
+          </div>
+          <button id="restart">Reiniciar</button>
+          <button id="change-level">Cambiar nivel</button>
+        </div>
+      </section>
+
+      <dialog id="game-over" class="modal">
+        <h2>Sin movimientos</h2>
+        <p>Tu puntuacion final ha sido <strong id="final-score">0</strong>.</p>
+        <button id="play-again">Jugar otra vez</button>
+      </dialog>
+    </main>
+
+  </body>
+</html>
