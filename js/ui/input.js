@@ -30,13 +30,19 @@ function posFromEvent(event) {
   return posFromElement(event.target);
 }
 
+function tileNodeFromPos(board, pos) {
+  return board.querySelector(`.tile[data-pos="${pos.x},${pos.y}"]`);
+}
+
 export function bindInput(ui, game, handlers) {
   let pointerDown = false;
   let activeNode = null;
   let lastPos = null;
 
   ui.board.addEventListener("pointerdown", (event) => {
-    const pos = posFromEvent(event);
+    const pos =
+      posFromBoardPoint(ui.board, game, event.clientX, event.clientY) ??
+      posFromEvent(event);
     if (!pos || game.locked) return;
 
     if (game.variant === "match3" && game.swapFrom && !samePos(game.swapFrom, pos)) {
@@ -46,9 +52,9 @@ export function bindInput(ui, game, handlers) {
 
     pointerDown = true;
     lastPos = pos;
-    activeNode = event.target.closest(".tile");
-    activeNode.setPointerCapture(event.pointerId);
-    activeNode.classList.add("is-touching");
+    activeNode = tileNodeFromPos(ui.board, pos) ?? event.target.closest(".tile");
+    activeNode?.setPointerCapture(event.pointerId);
+    activeNode?.classList.add("is-touching");
     handlers.start(pos);
   });
 
