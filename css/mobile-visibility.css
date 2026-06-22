@@ -1,0 +1,129 @@
+/* Mejoras de legibilidad para movil y pantallas pequeñas. */
+.game-screen {
+  padding: clamp(2px, 1.4vw, 8px);
+  gap: clamp(3px, 1.2vw, 8px);
+}
+
+.board {
+  width: min(calc(100dvh - 64px), calc(100vw - 4px));
+  height: min(calc(100dvh - 64px), calc(100vw - 4px));
+  border-radius: 10px;
+}
+
+.tile {
+  transform: scale(1);
+}
+
+.tile::before {
+  inset: 1%;
+  border-radius: 12px;
+}
+
+.tile img {
+  width: 134%;
+  height: 134%;
+  margin: -17%;
+  max-width: none;
+  max-height: none;
+  filter: drop-shadow(0 7px 5px rgba(87, 49, 11, 0.28));
+}
+
+.tile[data-level]::after {
+  right: -1px;
+  bottom: -1px;
+  padding: 1px 4px;
+  font-size: clamp(0.48rem, 1.9vw, 0.68rem);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+}
+
+.tile.is-selected {
+  transform: scale(1.1);
+}
+
+.tile.is-origin {
+  transform: scale(1.14);
+}
+
+.tile.is-destination {
+  transform: scale(1.18);
+}
+
+.tile[data-level="6"] img,
+.tile[data-level="7"] img {
+  transform: rotate(-5deg) scale(1.12);
+}
+
+@media (max-width: 700px) {
+  .game-screen {
+    padding: 2px;
+    gap: 3px;
+  }
+
+  .topbar {
+    min-height: 44px;
+    padding: 4px 5px;
+    gap: 6px;
+    border-radius: 7px;
+  }
+
+  .score-pill span {
+    font-size: 0.56rem;
+  }
+
+  .score-pill strong {
+    font-size: 1.18rem;
+  }
+
+  #status {
+    font-size: 0.72rem;
+  }
+
+  .menu-button {
+    width: 36px;
+    height: 36px;
+    gap: 4px;
+  }
+
+  .menu-button span {
+    width: 18px;
+  }
+
+  .board {
+    width: min(calc(100dvh - 51px), calc(100vw - 2px));
+    height: min(calc(100dvh - 51px), calc(100vw - 2px));
+    margin: 0 auto auto;
+    box-shadow: 0 10px 24px rgba(111, 66, 18, 0.18), inset 0 0 0 1px rgba(255, 255, 255, 0.78);
+  }
+
+  .path-link.is-horizontal {
+    height: calc(56% / var(--size));
+  }
+
+  .path-link.is-vertical {
+    width: calc(56% / var(--size));
+  }
+
+  .tile img {
+    width: 150%;
+    height: 150%;
+    margin: -25%;
+  }
+
+  .tile::before {
+    inset: 0;
+    border-radius: 10px;
+  }
+}
+
+@media (max-width: 420px) {
+  .tile img {
+    width: 162%;
+    height: 162%;
+    margin: -31%;
+  }
+
+  .tile[data-level]::after {
+    font-size: 0.46rem;
+    padding: 1px 3px;
+  }
+}
