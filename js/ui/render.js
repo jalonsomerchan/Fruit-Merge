@@ -95,6 +95,8 @@ export function renderBoard(ui, game) {
       node.classList.toggle("is-origin", game.origin?.x === x && game.origin?.y === y);
       node.classList.toggle("is-destination", game.path.length > 1 && destination?.x === x && destination?.y === y);
       node.classList.toggle("is-path", game.pathKeys.has(tileKey));
+      node.classList.toggle("is-tutorial-target", game.tutorialTargetKeys?.has(tileKey));
+      node.classList.toggle("is-tutorial-start", game.tutorialStartKey === tileKey);
       node.classList.toggle("is-collecting", game.collecting.has(tile.id));
       node.classList.toggle("is-exploding", game.exploding.has(tileKey));
       node.classList.toggle("is-new", tile.fresh);
