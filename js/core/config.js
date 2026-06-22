@@ -14,10 +14,17 @@ export const STORAGE_KEY = "fruitMergeBest";
 export const MOVE_DELAY = 235;
 export const MERGE_DELAY = 300;
 
+const FRUIT_SPRITES = import.meta.glob("../../assets/sprites/fruits/fruit-*.png", {
+  eager: true,
+  query: "?url",
+  import: "default"
+});
+
 export function spriteFor(tile) {
   const fruit = FRUITS.find((item) => item.id === tile.fruit);
   const col = Math.min(tile.level, MAX_SPRITE_LEVEL);
-  return `/assets/sprites/fruits/fruit-${fruit.row * 4 + col + 1}.png`;
+  const spriteIndex = fruit.row * 4 + col + 1;
+  return FRUIT_SPRITES[`../../assets/sprites/fruits/fruit-${spriteIndex}.png`];
 }
 
 export function powerFor(level) {
