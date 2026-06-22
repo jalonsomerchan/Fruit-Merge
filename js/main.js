@@ -122,39 +122,39 @@ async function endMergePath() {
 
 async function mergePath() {
   game.locked = true;
-  const origin = game.origin;
-  const originTile = getTile(game.board, origin);
-  if (!originTile) {
+  const destination = game.path.at(-1);
+  const destinationTile = getTile(game.board, destination);
+  if (!destinationTile) {
     game.locked = false;
     return;
   }
 
   game.collecting.clear();
-  for (const pos of game.path.slice(1)) {
+  for (const pos of game.path.slice(0, -1)) {
     const tile = getTile(game.board, pos);
-    if (tile) game.collecting.set(tile.id, { x: origin.x - pos.x, y: origin.y - pos.y });
+    if (tile) game.collecting.set(tile.id, { x: destination.x - pos.x, y: destination.y - pos.y });
   }
-  draw(`${game.path.length} frutas vuelan al origen.`);
+  draw(`${game.path.length} frutas vuelan al destino.`);
   await wait(260);
 
-  for (const pos of game.path.slice(1)) game.board[pos.y][pos.x] = null;
-  originTile.level += 1;
-  originTile.id = `${originTile.id}-m`;
-  originTile.fresh = false;
+  for (const pos of game.path.slice(0, -1)) game.board[pos.y][pos.x] = null;
+  destinationTile.level += 1;
+  destinationTile.id = `${destinationTile.id}-m`;
+  destinationTile.fresh = false;
   game.moves += 1;
-  game.score += mergeScore(originTile.level) * game.path.length;
+  game.score += mergeScore(destinationTile.level) * game.path.length;
   game.best = Math.max(game.best, game.score);
   localStorage.setItem(STORAGE_KEY, game.best.toString());
 
   game.collecting.clear();
-  game.popped = originTile.id;
-  burst(ui, origin);
+  game.popped = destinationTile.id;
+  burst(ui, destination);
   clearPath();
   draw("Fusion perfecta.");
   await wait(MERGE_DELAY);
 
-  if (originTile.level >= MAX_MERGE_LEVEL) {
-    await explodeMaxFruit(origin);
+  if (destinationTile.level >= MAX_MERGE_LEVEL) {
+    await explodeMaxFruit(destination);
   }
 
   game.popped = null;
