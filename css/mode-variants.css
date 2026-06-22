@@ -1,3 +1,10 @@
+.mode-screen {
+  max-height: 100%;
+  justify-content: flex-start;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .mode-list {
   width: min(820px, 100%);
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -71,6 +78,11 @@
 }
 
 @media (max-width: 700px) {
+  .mode-screen {
+    padding-top: 18px;
+    padding-bottom: 28px;
+  }
+
   .mode-list {
     grid-template-columns: 1fr;
   }
