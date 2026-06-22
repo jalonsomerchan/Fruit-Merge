@@ -10,7 +10,34 @@ import { burst, renderBoard, renderStats, resetRenderer, shockwave } from "./ui/
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const posKey = (pos) => `${pos.x},${pos.y}`;
 
+const GAME_MODES = {
+  normal: { label: "Normal" },
+  timed: { label: "Contrarreloj" },
+  explosive: { label: "Explosivo" },
+  simple: { label: "Simple" }
+};
+
+const DIFFICULTIES = {
+  8: "easy",
+  9: "medium",
+  10: "hard"
+};
+
+const TIMED_LIMITS = {
+  easy: 10,
+  medium: 6,
+  hard: 3
+};
+
+const AREA_CLEAR_INTERVALS = {
+  easy: 15,
+  medium: 10,
+  hard: 7
+};
+
 const game = {
+  mode: "normal",
+  difficulty: "easy",
   size: START_SIZE,
   board: [],
   score: 0,
@@ -22,11 +49,17 @@ const game = {
   collecting: new Map(),
   exploding: new Set(),
   popped: null,
-  locked: false
+  locked: false,
+  gameOver: false,
+  turnTimerId: null,
+  turnDeadline: 0,
+  areaTimerId: null
 };
 
-function boot(size = game.size) {
+function boot(size = game.size, difficulty = game.difficulty) {
+  clearModeTimers();
   game.size = size;
+  game.difficulty = difficulty || DIFFICULTIES[size] || "easy";
   game.board = makePlayableBoard(size);
   game.score = 0;
   game.moves = 0;
@@ -35,12 +68,14 @@ function boot(size = game.size) {
   game.exploding.clear();
   game.popped = null;
   game.locked = false;
+  game.gameOver = false;
   ui.dialog.close?.();
   ui.board.replaceChildren();
   closeMenu();
   resetRenderer();
   showScreen("game");
-  draw("Nueva partida lista.");
+  draw(startMessage());
+  startModeTimers();
 }
 
 function makePlayableBoard(size) {
@@ -53,10 +88,38 @@ function makePlayableBoard(size) {
   return board;
 }
 
+function startMessage() {
+  if (game.mode === "timed") return `Contrarreloj: fusiona antes de ${TIMED_LIMITS[game.difficulty]}s.`;
+  if (game.mode === "explosive") return `Explosivo: se limpia una zona cada ${AREA_CLEAR_INTERVALS[game.difficulty]}s.`;
+  if (game.mode === "simple") return "Simple: las frutas fusionadas desaparecen.";
+  return "Nueva partida lista.";
+}
+
 function draw(message) {
   if (message) ui.status.textContent = message;
   renderStats(ui, game);
+  updateModeHud();
   renderBoard(ui, game);
+}
+
+function updateModeHud() {
+  ui.modeLabel.textContent = GAME_MODES[game.mode]?.label ?? "Normal";
+
+  if (game.mode === "timed" && game.turnDeadline) {
+    const remaining = Math.max(0, Math.ceil((game.turnDeadline - Date.now()) / 1000));
+    ui.modeTimer.textContent = `${remaining}s`;
+    ui.modeTimer.hidden = false;
+    return;
+  }
+
+  if (game.mode === "explosive") {
+    ui.modeTimer.textContent = `${AREA_CLEAR_INTERVALS[game.difficulty]}s`;
+    ui.modeTimer.hidden = false;
+    return;
+  }
+
+  ui.modeTimer.textContent = "";
+  ui.modeTimer.hidden = true;
 }
 
 function showScreen(name) {
@@ -86,7 +149,7 @@ function mergeLevelBoost(groupSize) {
 }
 
 function beginMergePath(pos) {
-  if (game.locked) return;
+  if (game.locked || game.gameOver) return;
   const tile = getTile(game.board, pos);
   if (!tile || tile.level >= MAX_MERGE_LEVEL) return;
   game.origin = pos;
@@ -96,7 +159,7 @@ function beginMergePath(pos) {
 }
 
 function extendMergePath(pos) {
-  if (game.locked || !game.origin || !game.path.length) return;
+  if (game.locked || game.gameOver || !game.origin || !game.path.length) return;
   const key = posKey(pos);
   const existing = game.pathKeys.get(key);
 
@@ -129,7 +192,7 @@ function extendMergePath(pos) {
 }
 
 async function endMergePath() {
-  if (game.locked || !game.path.length) return;
+  if (game.locked || game.gameOver || !game.path.length) return;
   if (game.path.length < 2) {
     cancelMergePath();
     return;
@@ -139,10 +202,18 @@ async function endMergePath() {
 
 async function mergePath() {
   game.locked = true;
+  clearTurnTimer();
+
+  if (game.mode === "simple") {
+    await mergeSimplePath();
+    return;
+  }
+
   const destination = game.path.at(-1);
   const destinationTile = getTile(game.board, destination);
   if (!destinationTile) {
     game.locked = false;
+    startTurnTimer();
     return;
   }
 
@@ -164,8 +235,7 @@ async function mergePath() {
   destinationTile.fresh = false;
   game.moves += 1;
   game.score += mergeScore(destinationTile.level) * groupSize;
-  game.best = Math.max(game.best, game.score);
-  localStorage.setItem(STORAGE_KEY, game.best.toString());
+  saveBestScore();
 
   game.collecting.clear();
   game.popped = destinationTile.id;
@@ -185,19 +255,62 @@ async function mergePath() {
   finishTurn();
 }
 
+async function mergeSimplePath() {
+  const destination = game.path.at(-1);
+  const originTile = getTile(game.board, game.origin);
+  const groupSize = game.path.length;
+
+  game.collecting.clear();
+  for (const pos of game.path) {
+    const tile = getTile(game.board, pos);
+    if (tile) game.collecting.set(tile.id, { x: destination.x - pos.x, y: destination.y - pos.y });
+  }
+  draw(`${groupSize} frutas desaparecen.`);
+  await wait(240);
+
+  for (const pos of game.path) game.board[pos.y][pos.x] = null;
+  game.moves += 1;
+  game.score += mergeScore(originTile?.level ?? 0) * groupSize;
+  saveBestScore();
+
+  game.collecting.clear();
+  burst(ui, destination);
+  clearPath();
+  draw("Fusion simple completada.");
+  await wait(MERGE_DELAY);
+
+  settleBoard(game.board);
+  draw();
+  await wait(MOVE_DELAY);
+  finishTurn();
+}
+
 function finishTurn() {
+  if (game.gameOver) return;
   game.locked = false;
   if (!hasPossibleMove(game.board)) {
-    ui.finalScore.textContent = game.score.toLocaleString("es-ES");
-    ui.dialog.showModal();
-    ui.status.textContent = "La partida ha terminado: no hay movimientos posibles.";
-    renderStats(ui, game);
+    endGame("La partida ha terminado: no hay movimientos posibles.");
     return;
   }
   draw("Traza una cadena de frutas iguales para fusionar.");
+  startTurnTimer();
 }
 
 async function explodeMaxFruit(origin) {
+  const removed = getAreaTiles(origin);
+
+  game.exploding = new Set(removed.map(posKey));
+  shockwave(ui, origin);
+  draw("Nivel maximo: limpieza de zona.");
+  await wait(520);
+
+  for (const pos of removed) game.board[pos.y][pos.x] = null;
+  game.score += 40 * removed.length;
+  saveBestScore();
+  game.exploding.clear();
+}
+
+function getAreaTiles(origin) {
   const removed = [];
   for (let y = origin.y - 1; y <= origin.y + 1; y += 1) {
     for (let x = origin.x - 1; x <= origin.x + 1; x += 1) {
@@ -205,17 +318,93 @@ async function explodeMaxFruit(origin) {
       removed.push({ x, y });
     }
   }
+  return removed;
+}
 
+function saveBestScore() {
+  game.best = Math.max(game.best, game.score);
+  localStorage.setItem(STORAGE_KEY, game.best.toString());
+}
+
+function startModeTimers() {
+  clearModeTimers();
+  if (game.mode === "timed") startTurnTimer();
+  if (game.mode === "explosive") startAreaTimer();
+  updateModeHud();
+}
+
+function clearModeTimers() {
+  clearTurnTimer();
+  if (game.areaTimerId) window.clearInterval(game.areaTimerId);
+  game.areaTimerId = null;
+}
+
+function startTurnTimer() {
+  if (game.mode !== "timed" || game.gameOver) return;
+  clearTurnTimer();
+  const limit = TIMED_LIMITS[game.difficulty] ?? TIMED_LIMITS.easy;
+  game.turnDeadline = Date.now() + limit * 1000;
+  updateModeHud();
+
+  game.turnTimerId = window.setInterval(() => {
+    updateModeHud();
+    if (Date.now() < game.turnDeadline || game.locked) return;
+    endGame("Tiempo agotado: no hiciste una fusion a tiempo.");
+  }, 180);
+}
+
+function clearTurnTimer() {
+  if (game.turnTimerId) window.clearInterval(game.turnTimerId);
+  game.turnTimerId = null;
+  game.turnDeadline = 0;
+  updateModeHud();
+}
+
+function startAreaTimer() {
+  const interval = (AREA_CLEAR_INTERVALS[game.difficulty] ?? AREA_CLEAR_INTERVALS.easy) * 1000;
+  game.areaTimerId = window.setInterval(() => {
+    clearRandomArea();
+  }, interval);
+}
+
+async function clearRandomArea() {
+  if (game.mode !== "explosive" || game.locked || game.gameOver) return;
+  const filled = [];
+  for (let y = 0; y < game.size; y += 1) {
+    for (let x = 0; x < game.size; x += 1) {
+      if (game.board[y][x]) filled.push({ x, y });
+    }
+  }
+  if (!filled.length) return;
+
+  game.locked = true;
+  clearPath();
+  const origin = filled[Math.floor(Math.random() * filled.length)];
+  const removed = getAreaTiles(origin);
   game.exploding = new Set(removed.map(posKey));
   shockwave(ui, origin);
-  draw("Nivel maximo: explosion de fruta.");
+  draw("Modo explosivo: zona eliminada.");
   await wait(520);
 
   for (const pos of removed) game.board[pos.y][pos.x] = null;
-  game.score += 40 * removed.length;
-  game.best = Math.max(game.best, game.score);
-  localStorage.setItem(STORAGE_KEY, game.best.toString());
   game.exploding.clear();
+  settleBoard(game.board);
+  draw();
+  await wait(MOVE_DELAY);
+  finishTurn();
+}
+
+function endGame(message) {
+  if (game.gameOver) return;
+  game.gameOver = true;
+  clearModeTimers();
+  clearPath();
+  game.locked = true;
+  ui.finalScore.textContent = game.score.toLocaleString("es-ES");
+  ui.dialog.showModal();
+  ui.status.textContent = message;
+  renderStats(ui, game);
+  updateModeHud();
 }
 
 function closeMenu() {
@@ -229,17 +418,29 @@ function toggleMenu() {
   ui.menuPanel.setAttribute("aria-hidden", String(!next));
 }
 
-ui.startGame.addEventListener("click", () => showScreen("levels"));
+ui.startGame.addEventListener("click", () => showScreen("modes"));
 ui.menuToggle.addEventListener("click", toggleMenu);
 ui.restart.addEventListener("click", () => boot());
 ui.changeLevel.addEventListener("click", () => {
   closeMenu();
+  clearModeTimers();
   showScreen("levels");
 });
+ui.changeMode.addEventListener("click", () => {
+  closeMenu();
+  clearModeTimers();
+  showScreen("modes");
+});
 ui.playAgain.addEventListener("click", () => boot());
+ui.modeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    game.mode = button.dataset.mode;
+    showScreen("levels");
+  });
+});
 ui.levelButtons.forEach((button) => {
   button.addEventListener("click", () => {
-    boot(Number(button.dataset.size));
+    boot(Number(button.dataset.size), button.dataset.difficulty);
   });
 });
 
@@ -252,3 +453,4 @@ bindInput(ui, game, {
   }
 });
 renderStats(ui, game);
+updateModeHud();
