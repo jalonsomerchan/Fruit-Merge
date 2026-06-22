@@ -6,6 +6,25 @@ function key(pos) {
   return `${pos.x},${pos.y}`;
 }
 
+function renderPathLinks(ui, game) {
+  ui.board.querySelectorAll(".path-link").forEach((node) => node.remove());
+
+  if (game.path.length < 2) return;
+
+  for (let index = 1; index < game.path.length; index += 1) {
+    const from = game.path[index - 1];
+    const to = game.path[index];
+    const link = document.createElement("span");
+    const isHorizontal = from.y === to.y;
+
+    link.className = `path-link ${isHorizontal ? "is-horizontal" : "is-vertical"}`;
+    link.style.setProperty("--x", Math.min(from.x, to.x));
+    link.style.setProperty("--y", Math.min(from.y, to.y));
+    link.style.setProperty("--i", index);
+    ui.board.append(link);
+  }
+}
+
 export function renderStats(ui, game) {
   ui.score.textContent = game.score.toLocaleString("es-ES");
   ui.best.textContent = game.best.toLocaleString("es-ES");
@@ -15,6 +34,9 @@ export function renderStats(ui, game) {
 export function renderBoard(ui, game) {
   const seen = new Set();
   ui.board.style.setProperty("--size", game.size);
+  renderPathLinks(ui, game);
+
+  const destination = game.path.at(-1);
 
   for (let y = 0; y < game.size; y += 1) {
     for (let x = 0; x < game.size; x += 1) {
@@ -43,6 +65,7 @@ export function renderBoard(ui, game) {
       node.querySelector("img").src = spriteFor(tile);
       node.ariaLabel = `${tile.fruit} x${powerFor(tile.level)}`;
       node.classList.toggle("is-origin", game.origin?.x === x && game.origin?.y === y);
+      node.classList.toggle("is-destination", game.path.length > 1 && destination?.x === x && destination?.y === y);
       node.classList.toggle("is-path", game.pathKeys.has(key({ x, y })));
       node.classList.toggle("is-collecting", game.collecting.has(tile.id));
       node.classList.toggle("is-exploding", game.exploding.has(key({ x, y })));
