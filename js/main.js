@@ -8,6 +8,13 @@ import {
   makeMatch3Board,
   swapTiles
 } from "./core/match3.js";
+import {
+  createTutorial,
+  currentTutorialStep,
+  isExpectedMergePath,
+  isExpectedSwap,
+  tutorialTargets
+} from "./core/tutorials.js";
 import { mergeScore } from "./core/scoring.js";
 import { ui } from "./ui/elements.js";
 import { bindInput } from "./ui/input.js";
@@ -32,6 +39,7 @@ const GAME_MODES = {
 };
 
 const DIFFICULTIES = {
+  5: "tutorial",
   8: "easy",
   9: "medium",
   10: "hard"
@@ -81,13 +89,19 @@ const game = {
   gameOver: false,
   turnTimerId: null,
   turnDeadline: 0,
-  areaTimerId: null
+  areaTimerId: null,
+  tutorial: null,
+  tutorialStepCompleted: false,
+  tutorialTargetKeys: new Set(),
+  tutorialStartKey: ""
 };
 
 function boot(size = game.size, difficulty = game.difficulty) {
   clearModeTimers();
   game.size = size;
   game.difficulty = difficulty || DIFFICULTIES[size] || "easy";
+  game.tutorial = game.difficulty === "tutorial" ? createTutorial(game.variant, game.mode) : null;
+  game.tutorialStepCompleted = false;
   game.board = makePlayableBoard(size);
   game.score = 0;
   game.moves = 0;
@@ -111,7 +125,13 @@ function isMatch3Variant() {
   return game.variant === "match3";
 }
 
+function isTutorial() {
+  return Boolean(game.tutorial && game.difficulty === "tutorial");
+}
+
 function makePlayableBoard(size) {
+  if (isTutorial()) return currentTutorialStep(game.tutorial)?.board() ?? makeBoardForMode(size);
+
   let board = makeBoardForMode(size);
   let guard = 0;
   while (!boardHasPossibleMove(board) && guard < 80) {
@@ -153,6 +173,8 @@ function placeObstacles(board, total) {
 }
 
 function startMessage() {
+  if (isTutorial()) return currentTutorialStep(game.tutorial)?.message ?? "Tutorial listo.";
+
   if (isMatch3Variant()) {
     if (game.mode === "timed") return `Match 3 contrarreloj: combina antes de ${TIMED_LIMITS[game.difficulty]}s.`;
     if (game.mode === "explosive") return `Match 3 explosivo: se limpia una zona cada ${AREA_CLEAR_INTERVALS[game.difficulty]}s.`;
@@ -176,13 +198,32 @@ function draw(message) {
   if (message) ui.status.textContent = message;
   renderStats(ui, game);
   updateModeHud();
+  updateTutorialTargets();
   renderBoard(ui, game);
+}
+
+function updateTutorialTargets() {
+  game.tutorialTargetKeys = new Set();
+  game.tutorialStartKey = "";
+  if (!isTutorial()) return;
+
+  const step = currentTutorialStep(game.tutorial);
+  tutorialTargets(step).forEach((pos) => game.tutorialTargetKeys.add(posKey(pos)));
+
+  if (step?.action?.type === "merge") game.tutorialStartKey = posKey(step.action.path[0]);
+  if (step?.action?.type === "swap") game.tutorialStartKey = posKey(step.action.from);
 }
 
 function updateModeHud() {
   const variantLabel = PLAY_VARIANTS[game.variant]?.label ?? "Normal";
   const modeLabel = GAME_MODES[game.mode]?.label ?? "Normal";
   ui.modeLabel.textContent = `${variantLabel} · ${modeLabel}`;
+
+  if (isTutorial()) {
+    ui.modeTimer.textContent = `Paso ${game.tutorial.current + 1}/${game.tutorial.steps.length}`;
+    ui.modeTimer.hidden = false;
+    return;
+  }
 
   if (game.mode === "timed" && game.turnDeadline) {
     const remaining = Math.max(0, Math.ceil((game.turnDeadline - Date.now()) / 1000));
@@ -284,7 +325,7 @@ function beginMergePath(pos) {
   game.origin = pos;
   game.path = [pos];
   rebuildPathKeys();
-  draw("Arrastra por frutas iguales adyacentes.");
+  draw(isTutorial() ? "Sigue las casillas iluminadas del tutorial." : "Arrastra por frutas iguales adyacentes.");
 }
 
 function extendMergePath(pos) {
@@ -341,7 +382,7 @@ function beginMatch3Swap(pos) {
   if (!isFruitTile(tile)) return;
   game.swapFrom = pos;
   clearPath();
-  draw("Suelta sobre una fruta vecina para intercambiar.");
+  draw(isTutorial() ? "Suelta en la otra casilla iluminada." : "Suelta sobre una fruta vecina para intercambiar.");
 }
 
 async function endMatch3Swap(pos) {
@@ -359,6 +400,11 @@ async function endMatch3Swap(pos) {
 }
 
 async function tryMatch3Swap(from, to) {
+  if (isTutorial() && !isExpectedSwap(currentTutorialStep(game.tutorial), from, to)) {
+    draw("En el tutorial tienes que usar las dos casillas iluminadas.");
+    return;
+  }
+
   if (!isOrthogonalAdjacent(from, to)) {
     draw("Intercambia solo frutas vecinas.");
     return;
@@ -383,6 +429,7 @@ async function tryMatch3Swap(from, to) {
 
   clearTurnTimer();
   await resolveMatch3Cascades(groups);
+  completeTutorialStep();
   finishTurn();
 }
 
@@ -390,7 +437,7 @@ async function resolveMatch3Cascades(initialGroups = null) {
   let groups = initialGroups ?? findMatch3Groups(game.board);
   let combo = 1;
   const allowCascades = game.mode !== "simple";
-  const spawn = game.mode !== "cleanup";
+  const spawn = game.mode !== "cleanup" && !isTutorial();
 
   while (groups.length && !game.gameOver) {
     const cells = uniquePositions(groups.flat());
@@ -410,13 +457,13 @@ async function resolveMatch3Cascades(initialGroups = null) {
     draw(spawn ? "Cascada de frutas..." : "Frutas limpiadas...");
     await wait(MOVE_DELAY + 120);
 
-    if (!allowCascades) break;
+    if (!allowCascades || isTutorial()) break;
     groups = findMatch3Groups(game.board);
     combo += 1;
   }
 
   game.locked = false;
-  draw("Intercambia frutas para formar lineas de 3 o mas.");
+  draw(isTutorial() ? "Jugada del tutorial completada." : "Intercambia frutas para formar lineas de 3 o mas.");
 }
 
 function uniquePositions(positions) {
@@ -434,11 +481,16 @@ function isOrthogonalAdjacent(a, b) {
 }
 
 async function mergePath() {
+  if (isTutorial() && !isExpectedMergePath(currentTutorialStep(game.tutorial), game.path)) {
+    cancelMergePath("En el tutorial tienes que seguir exactamente las casillas iluminadas.");
+    return;
+  }
+
   game.locked = true;
   clearTurnTimer();
 
   if (game.mode === "simple") {
-    await mergeClearingPath({ spawn: true, label: "Fusion simple completada." });
+    await mergeClearingPath({ spawn: !isTutorial(), label: "Fusion simple completada." });
     return;
   }
 
@@ -474,6 +526,7 @@ async function mergePath() {
   game.moves += 1;
   game.score += mergeScore(destinationTile.level) * groupSize;
   saveBestScore();
+  completeTutorialStep();
 
   game.collecting.clear();
   game.popped = destinationTile.id;
@@ -482,12 +535,12 @@ async function mergePath() {
   draw(`Fusion x${2 ** levelBoost}.`);
   await wait(MERGE_DELAY);
 
-  if (destinationTile.level >= MAX_MERGE_LEVEL) {
+  if (destinationTile.level >= MAX_MERGE_LEVEL && !isTutorial()) {
     await explodeMaxFruit(destination);
   }
 
   game.popped = null;
-  settleBoard(game.board);
+  settleBoard(game.board, { spawn: !isTutorial() });
   draw();
   await wait(MOVE_DELAY);
   finishTurn();
@@ -510,6 +563,7 @@ async function mergeClearingPath({ spawn, label }) {
   game.moves += 1;
   game.score += mergeScore(originTile?.level ?? 0) * groupSize;
   saveBestScore();
+  completeTutorialStep();
 
   game.collecting.clear();
   burst(ui, destination);
@@ -523,9 +577,38 @@ async function mergeClearingPath({ spawn, label }) {
   finishTurn();
 }
 
+function completeTutorialStep() {
+  if (isTutorial()) game.tutorialStepCompleted = true;
+}
+
+function advanceTutorialIfNeeded() {
+  if (!isTutorial() || !game.tutorialStepCompleted) return false;
+
+  game.tutorialStepCompleted = false;
+  game.tutorial.current += 1;
+
+  if (game.tutorial.current >= game.tutorial.steps.length) {
+    endGame("Tutorial completado. Ya puedes jugar este modo.");
+    return true;
+  }
+
+  clearPath();
+  clearSwapSelection();
+  game.collecting.clear();
+  game.exploding.clear();
+  game.popped = null;
+  game.board = currentTutorialStep(game.tutorial).board();
+  ui.board.replaceChildren();
+  resetRenderer();
+  draw(currentTutorialStep(game.tutorial).message);
+  return true;
+}
+
 function finishTurn() {
   if (game.gameOver) return;
   game.locked = false;
+
+  if (advanceTutorialIfNeeded()) return;
 
   if (game.mode === "cleanup" && countFruitTiles() === 0) {
     endGame("Limpieza completada: tablero vacio.");
@@ -579,6 +662,10 @@ function saveBestScore() {
 
 function startModeTimers() {
   clearModeTimers();
+  if (isTutorial()) {
+    updateModeHud();
+    return;
+  }
   if (game.mode === "timed") startTurnTimer();
   if (game.mode === "explosive") startAreaTimer();
   updateModeHud();
@@ -591,7 +678,7 @@ function clearModeTimers() {
 }
 
 function startTurnTimer() {
-  if (game.mode !== "timed" || game.gameOver) return;
+  if (game.mode !== "timed" || game.gameOver || isTutorial()) return;
   clearTurnTimer();
   const limit = TIMED_LIMITS[game.difficulty] ?? TIMED_LIMITS.easy;
   game.turnDeadline = Date.now() + limit * 1000;
@@ -619,7 +706,7 @@ function startAreaTimer() {
 }
 
 async function clearRandomArea() {
-  if (game.mode !== "explosive" || game.locked || game.gameOver) return;
+  if (isTutorial() || game.mode !== "explosive" || game.locked || game.gameOver) return;
   const filled = [];
   for (let y = 0; y < game.size; y += 1) {
     for (let x = 0; x < game.size; x += 1) {
