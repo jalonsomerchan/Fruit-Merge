@@ -76,6 +76,10 @@ function rebuildPathKeys() {
   game.path.forEach((pos, index) => game.pathKeys.set(posKey(pos), index + 1));
 }
 
+function mergeLevelBoost(groupSize) {
+  return Math.ceil((groupSize - 1) / 2);
+}
+
 function beginMergePath(pos) {
   if (game.locked) return;
   const tile = getTile(game.board, pos);
@@ -129,20 +133,24 @@ async function mergePath() {
     return;
   }
 
+  const groupSize = game.path.length;
+  const levelBoost = mergeLevelBoost(groupSize);
+  const nextLevel = Math.min(destinationTile.level + levelBoost, MAX_MERGE_LEVEL);
+
   game.collecting.clear();
   for (const pos of game.path.slice(0, -1)) {
     const tile = getTile(game.board, pos);
     if (tile) game.collecting.set(tile.id, { x: destination.x - pos.x, y: destination.y - pos.y });
   }
-  draw(`${game.path.length} frutas vuelan al destino.`);
+  draw(`${groupSize} frutas vuelan al destino. x${2 ** levelBoost}`);
   await wait(260);
 
   for (const pos of game.path.slice(0, -1)) game.board[pos.y][pos.x] = null;
-  destinationTile.level += 1;
+  destinationTile.level = nextLevel;
   destinationTile.id = `${destinationTile.id}-m`;
   destinationTile.fresh = false;
   game.moves += 1;
-  game.score += mergeScore(destinationTile.level) * game.path.length;
+  game.score += mergeScore(destinationTile.level) * groupSize;
   game.best = Math.max(game.best, game.score);
   localStorage.setItem(STORAGE_KEY, game.best.toString());
 
@@ -150,7 +158,7 @@ async function mergePath() {
   game.popped = destinationTile.id;
   burst(ui, destination);
   clearPath();
-  draw("Fusion perfecta.");
+  draw(`Fusion x${2 ** levelBoost}.`);
   await wait(MERGE_DELAY);
 
   if (destinationTile.level >= MAX_MERGE_LEVEL) {
