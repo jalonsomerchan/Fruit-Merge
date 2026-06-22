@@ -31,6 +31,19 @@ export function renderStats(ui, game) {
   ui.moves.textContent = game.moves.toString();
 }
 
+function ensureNode(tile, ui) {
+  let node = tileNodes.get(tile.id);
+  if (!node) {
+    node = document.createElement("button");
+    node.className = "tile";
+    node.type = "button";
+    node.innerHTML = "<img alt=\"\" draggable=\"false\" />";
+    ui.board.append(node);
+    tileNodes.set(tile.id, node);
+  }
+  return node;
+}
+
 export function renderBoard(ui, game) {
   const seen = new Set();
   ui.board.style.setProperty("--size", game.size);
@@ -44,34 +57,38 @@ export function renderBoard(ui, game) {
       if (!tile) continue;
 
       seen.add(tile.id);
-      let node = tileNodes.get(tile.id);
-      if (!node) {
-        node = document.createElement("button");
-        node.className = "tile";
-        node.type = "button";
-        node.innerHTML = "<img alt=\"\" draggable=\"false\" />";
-        ui.board.append(node);
-        tileNodes.set(tile.id, node);
-      }
+      const node = ensureNode(tile, ui);
+      const tileKey = key({ x, y });
+      const image = node.querySelector("img");
 
-      node.dataset.pos = key({ x, y });
-      node.dataset.level = Math.min(tile.level, 7).toString();
-      node.dataset.power = powerFor(tile.level);
-      node.dataset.order = game.pathKeys.get(key({ x, y })) ?? "";
+      node.dataset.pos = tileKey;
+      node.dataset.order = game.pathKeys.get(tileKey) ?? "";
       node.style.setProperty("--x", x);
       node.style.setProperty("--y", y);
       node.style.setProperty("--to-x", game.collecting.get(tile.id)?.x ?? 0);
       node.style.setProperty("--to-y", game.collecting.get(tile.id)?.y ?? 0);
-      node.querySelector("img").src = spriteFor(tile);
-      node.ariaLabel = `${tile.fruit} x${powerFor(tile.level)}`;
+
+      if (tile.type === "obstacle") {
+        node.dataset.level = "";
+        node.dataset.power = "";
+        image.removeAttribute("src");
+        node.ariaLabel = "Obstaculo";
+      } else {
+        node.dataset.level = Math.min(tile.level, 7).toString();
+        node.dataset.power = powerFor(tile.level);
+        image.src = spriteFor(tile);
+        node.ariaLabel = `${tile.fruit} x${powerFor(tile.level)}`;
+      }
+
+      node.classList.toggle("is-obstacle", tile.type === "obstacle");
       node.classList.toggle("is-origin", game.origin?.x === x && game.origin?.y === y);
       node.classList.toggle("is-destination", game.path.length > 1 && destination?.x === x && destination?.y === y);
-      node.classList.toggle("is-path", game.pathKeys.has(key({ x, y })));
+      node.classList.toggle("is-path", game.pathKeys.has(tileKey));
       node.classList.toggle("is-collecting", game.collecting.has(tile.id));
-      node.classList.toggle("is-exploding", game.exploding.has(key({ x, y })));
+      node.classList.toggle("is-exploding", game.exploding.has(tileKey));
       node.classList.toggle("is-new", tile.fresh);
       node.classList.toggle("is-pop", game.popped === tile.id);
-      tile.fresh = false;
+      if (tile.type !== "obstacle") tile.fresh = false;
     }
   }
 
