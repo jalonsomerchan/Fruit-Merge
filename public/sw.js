@@ -1,4 +1,4 @@
-const CACHE_NAME = "fruit-merge-v3";
+const CACHE_NAME = "fruit-merge-v4";
 const APP_SHELL = [
   "/",
   "/index.html",
