@@ -26,7 +26,7 @@ function updateTimedWarning() {
   const modeLabel = document.querySelector("#mode-label");
   const modeTimer = document.querySelector("#mode-timer");
   const seconds = readSeconds(modeTimer);
-  const isTimedMode = modeLabel?.textContent?.trim().toLowerCase() === "contrarreloj";
+  const isTimedMode = modeLabel?.textContent?.toLowerCase().includes("contrarreloj");
   const shouldShow = isTimedMode && isGameVisible() && seconds > 0 && seconds <= WARNING_THRESHOLD;
 
   layer.classList.toggle("is-visible", shouldShow);
