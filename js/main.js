@@ -16,6 +16,11 @@ import { burst, renderBoard, renderStats, resetRenderer, shockwave } from "./ui/
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const posKey = (pos) => `${pos.x},${pos.y}`;
 
+const PLAY_VARIANTS = {
+  merge: { label: "Normal" },
+  match3: { label: "Match 3" }
+};
+
 const GAME_MODES = {
   normal: { label: "Normal" },
   timed: { label: "Contrarreloj" },
@@ -23,8 +28,7 @@ const GAME_MODES = {
   simple: { label: "Simple" },
   limited: { label: "Movimientos" },
   obstacles: { label: "Obstaculos" },
-  cleanup: { label: "Limpieza" },
-  candy: { label: "Match 3" }
+  cleanup: { label: "Limpieza" }
 };
 
 const DIFFICULTIES = {
@@ -58,6 +62,7 @@ const OBSTACLE_COUNTS = {
 };
 
 const game = {
+  variant: "merge",
   mode: "normal",
   difficulty: "easy",
   size: START_SIZE,
@@ -102,6 +107,10 @@ function boot(size = game.size, difficulty = game.difficulty) {
   startModeTimers();
 }
 
+function isMatch3Variant() {
+  return game.variant === "match3";
+}
+
 function makePlayableBoard(size) {
   let board = makeBoardForMode(size);
   let guard = 0;
@@ -113,14 +122,13 @@ function makePlayableBoard(size) {
 }
 
 function makeBoardForMode(size) {
-  if (game.mode === "candy") return makeMatch3Board(size);
-  const board = makeBoard(size);
+  const board = isMatch3Variant() ? makeMatch3Board(size) : makeBoard(size);
   if (game.mode === "obstacles") placeObstacles(board, OBSTACLE_COUNTS[game.difficulty] ?? OBSTACLE_COUNTS.easy);
   return board;
 }
 
 function boardHasPossibleMove(board) {
-  return game.mode === "candy" ? hasMatch3Move(board) : hasPossibleMove(board);
+  return isMatch3Variant() ? hasMatch3Move(board) : hasPossibleMove(board);
 }
 
 function placeObstacles(board, total) {
@@ -145,13 +153,22 @@ function placeObstacles(board, total) {
 }
 
 function startMessage() {
+  if (isMatch3Variant()) {
+    if (game.mode === "timed") return `Match 3 contrarreloj: combina antes de ${TIMED_LIMITS[game.difficulty]}s.`;
+    if (game.mode === "explosive") return `Match 3 explosivo: se limpia una zona cada ${AREA_CLEAR_INTERVALS[game.difficulty]}s.`;
+    if (game.mode === "simple") return "Match 3 simple: combina grupos sin cascadas encadenadas.";
+    if (game.mode === "limited") return `Match 3 con movimientos limitados: tienes ${MOVE_LIMITS[game.difficulty]} movimientos validos.`;
+    if (game.mode === "obstacles") return "Match 3 con obstaculos: las rocas bloquean intercambios y caidas.";
+    if (game.mode === "cleanup") return "Match 3 limpieza: combina frutas sin que aparezcan nuevas.";
+    return "Match 3: intercambia frutas vecinas para formar lineas de 3 o mas.";
+  }
+
   if (game.mode === "timed") return `Contrarreloj: fusiona antes de ${TIMED_LIMITS[game.difficulty]}s.`;
   if (game.mode === "explosive") return `Explosivo: se limpia una zona cada ${AREA_CLEAR_INTERVALS[game.difficulty]}s.`;
   if (game.mode === "simple") return "Simple: las frutas fusionadas desaparecen.";
   if (game.mode === "limited") return `Movimientos limitados: tienes ${MOVE_LIMITS[game.difficulty]} fusiones.`;
   if (game.mode === "obstacles") return "Obstaculos: las rocas bloquean el tablero.";
   if (game.mode === "cleanup") return "Limpieza: vacia el tablero sin que aparezcan frutas nuevas.";
-  if (game.mode === "candy") return "Match 3: intercambia frutas vecinas para formar lineas de 3 o mas.";
   return "Nueva partida lista.";
 }
 
@@ -163,7 +180,9 @@ function draw(message) {
 }
 
 function updateModeHud() {
-  ui.modeLabel.textContent = GAME_MODES[game.mode]?.label ?? "Normal";
+  const variantLabel = PLAY_VARIANTS[game.variant]?.label ?? "Normal";
+  const modeLabel = GAME_MODES[game.mode]?.label ?? "Normal";
+  ui.modeLabel.textContent = `${variantLabel} · ${modeLabel}`;
 
   if (game.mode === "timed" && game.turnDeadline) {
     const remaining = Math.max(0, Math.ceil((game.turnDeadline - Date.now()) / 1000));
@@ -196,7 +215,7 @@ function updateModeHud() {
     return;
   }
 
-  if (game.mode === "candy") {
+  if (isMatch3Variant()) {
     ui.modeTimer.textContent = "3+";
     ui.modeTimer.hidden = false;
     return;
@@ -255,7 +274,7 @@ function getRemainingMoves() {
 
 function beginMergePath(pos) {
   if (game.locked || game.gameOver) return;
-  if (game.mode === "candy") {
+  if (isMatch3Variant()) {
     beginMatch3Swap(pos);
     return;
   }
@@ -269,7 +288,7 @@ function beginMergePath(pos) {
 }
 
 function extendMergePath(pos) {
-  if (game.mode === "candy") return;
+  if (isMatch3Variant()) return;
   if (game.locked || game.gameOver || !game.origin || !game.path.length) return;
   const key = posKey(pos);
   const existing = game.pathKeys.get(key);
@@ -303,7 +322,7 @@ function extendMergePath(pos) {
 }
 
 async function endMergePath(pos) {
-  if (game.mode === "candy") {
+  if (isMatch3Variant()) {
     await endMatch3Swap(pos);
     return;
   }
@@ -362,6 +381,7 @@ async function tryMatch3Swap(from, to) {
     return;
   }
 
+  clearTurnTimer();
   await resolveMatch3Cascades(groups);
   finishTurn();
 }
@@ -369,6 +389,8 @@ async function tryMatch3Swap(from, to) {
 async function resolveMatch3Cascades(initialGroups = null) {
   let groups = initialGroups ?? findMatch3Groups(game.board);
   let combo = 1;
+  const allowCascades = game.mode !== "simple";
+  const spawn = game.mode !== "cleanup";
 
   while (groups.length && !game.gameOver) {
     const cells = uniquePositions(groups.flat());
@@ -384,10 +406,11 @@ async function resolveMatch3Cascades(initialGroups = null) {
     game.exploding.clear();
     const center = cells[Math.floor(cells.length / 2)];
     if (center) burst(ui, center);
-    settleBoard(game.board, { breakObstacles: false });
-    draw("Cascada de frutas...");
+    settleBoard(game.board, { spawn });
+    draw(spawn ? "Cascada de frutas..." : "Frutas limpiadas...");
     await wait(MOVE_DELAY + 120);
 
+    if (!allowCascades) break;
     groups = findMatch3Groups(game.board);
     combo += 1;
   }
@@ -515,11 +538,11 @@ function finishTurn() {
   }
 
   if (!boardHasPossibleMove(game.board)) {
-    endGame(game.mode === "cleanup" ? "No quedan fusiones para seguir limpiando." : "La partida ha terminado: no hay movimientos posibles.");
+    endGame(game.mode === "cleanup" ? "No quedan combinaciones para seguir limpiando." : "La partida ha terminado: no hay movimientos posibles.");
     return;
   }
 
-  draw(game.mode === "candy" ? "Intercambia frutas para formar lineas de 3 o mas." : "Traza una cadena de frutas iguales para fusionar.");
+  draw(isMatch3Variant() ? "Intercambia frutas para formar lineas de 3 o mas." : "Traza una cadena de frutas iguales para fusionar.");
   startTurnTimer();
 }
 
@@ -577,7 +600,7 @@ function startTurnTimer() {
   game.turnTimerId = window.setInterval(() => {
     updateModeHud();
     if (Date.now() < game.turnDeadline || game.locked) return;
-    endGame("Tiempo agotado: no hiciste una fusion a tiempo.");
+    endGame("Tiempo agotado: no hiciste un movimiento valido a tiempo.");
   }, 180);
 }
 
@@ -607,6 +630,7 @@ async function clearRandomArea() {
 
   game.locked = true;
   clearPath();
+  clearSwapSelection();
   const origin = filled[Math.floor(Math.random() * filled.length)];
   const removed = getAreaTiles(origin);
   game.exploding = new Set(removed.map(posKey));
@@ -616,9 +640,13 @@ async function clearRandomArea() {
 
   for (const pos of removed) game.board[pos.y][pos.x] = null;
   game.exploding.clear();
-  settleBoard(game.board);
+  settleBoard(game.board, { spawn: game.mode !== "cleanup" });
   draw();
   await wait(MOVE_DELAY);
+  if (isMatch3Variant()) {
+    const groups = findMatch3Groups(game.board);
+    if (groups.length) await resolveMatch3Cascades(groups);
+  }
   finishTurn();
 }
 
@@ -647,7 +675,7 @@ function toggleMenu() {
   ui.menuPanel.setAttribute("aria-hidden", String(!next));
 }
 
-ui.startGame.addEventListener("click", () => showScreen("modes"));
+ui.startGame.addEventListener("click", () => showScreen("variants"));
 ui.menuToggle.addEventListener("click", toggleMenu);
 ui.restart.addEventListener("click", () => boot());
 ui.changeLevel.addEventListener("click", () => {
@@ -658,9 +686,15 @@ ui.changeLevel.addEventListener("click", () => {
 ui.changeMode.addEventListener("click", () => {
   closeMenu();
   clearModeTimers();
-  showScreen("modes");
+  showScreen("variants");
 });
 ui.playAgain.addEventListener("click", () => boot());
+ui.variantButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    game.variant = button.dataset.variant;
+    showScreen("modes");
+  });
+});
 ui.modeButtons.forEach((button) => {
   button.addEventListener("click", () => {
     game.mode = button.dataset.mode;
