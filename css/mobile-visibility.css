@@ -4,6 +4,22 @@
   gap: clamp(3px, 1.2vw, 8px);
 }
 
+.path-link.is-diagonal {
+  left: calc((var(--x) + 1) * 100% / var(--size));
+  top: calc((var(--y) + 1) * 100% / var(--size));
+  width: calc(142% / var(--size));
+  height: calc(42% / var(--size));
+  transform-origin: center;
+}
+
+.path-link.is-diagonal-down {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.path-link.is-diagonal-up {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
 .board {
   width: min(calc(100dvh - 64px), calc(100vw - 4px));
   height: min(calc(100dvh - 64px), calc(100vw - 4px));
@@ -60,6 +76,7 @@
 
 @media (max-width: 700px) {
   .game-screen {
+    min-height: 100dvh;
     padding: 2px;
     gap: 3px;
   }
@@ -96,7 +113,7 @@
   .board {
     width: min(calc(100dvh - 51px), calc(100vw - 2px));
     height: min(calc(100dvh - 51px), calc(100vw - 2px));
-    margin: 0 auto auto;
+    margin: auto;
     box-shadow: 0 10px 24px rgba(111, 66, 18, 0.18), inset 0 0 0 1px rgba(255, 255, 255, 0.78);
   }
 
@@ -106,6 +123,10 @@
 
   .path-link.is-vertical {
     width: calc(56% / var(--size));
+  }
+
+  .path-link.is-diagonal {
+    height: calc(56% / var(--size));
   }
 
   .tile img {
