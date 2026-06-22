@@ -3,9 +3,13 @@ import { MAX_MERGE_LEVEL } from "./config.js";
 
 const DIRECTIONS = [
   { x: 1, y: 0 },
+  { x: 1, y: 1 },
   { x: 0, y: 1 },
+  { x: -1, y: 1 },
   { x: -1, y: 0 },
-  { x: 0, y: -1 }
+  { x: -1, y: -1 },
+  { x: 0, y: -1 },
+  { x: 1, y: -1 }
 ];
 
 export function mergeTiles(board, from, to) {
