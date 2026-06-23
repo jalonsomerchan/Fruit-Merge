@@ -2,33 +2,108 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#ff7a1a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Fruit Merge" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="application-name" content="Fruit Merge" />
+    <meta name="description" content="Fusiona frutas, juega en modo normal o Match 3 y supera retos con distintos modos de juego." />
     <title>Fruit Merge</title>
-    <script type="module" crossorigin src="/assets/index-BrXuxTin.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-D6_mLe3E.css">
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16-DRXlGra7.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32-BDa23Y_b.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon-DzOxW1xV.png" />
+    <script type="module" crossorigin src="/assets/index-D7DhNDCq.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DENVPlN_.css">
   </head>
   <body>
     <main class="app">
       <section class="screen start-screen is-active" data-screen="start">
-        <p class="eyebrow">Fruit Merge</p>
-        <h1>Fusiona frutas hasta el nivel 8</h1>
-        <p class="lead">Intercambia piezas vecinas, junta parejas iguales y pelea por la mejor puntuacion.</p>
-        <button class="primary" id="start-game">Jugar</button>
+        <div class="start-content">
+          <p class="eyebrow">Puzle de frutas</p>
+          <h1>Fruit Merge</h1>
+          <p class="lead">Fusiona cadenas, crea lineas de 3, domina modos especiales y lleva cada fruta hasta su maxima potencia.</p>
+          <div class="start-actions">
+            <button class="primary" id="start-game">Jugar</button>
+            <button class="secondary" id="about-game">Acerca de</button>
+            <button class="secondary" id="share-game">Compartir</button>
+          </div>
+          <p class="share-feedback" id="share-feedback" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="screen variant-screen" data-screen="variants">
+        <button class="back-button" id="back-to-start">Volver</button>
+        <p class="eyebrow">Elige modalidad</p>
+        <h2>Que mecanica quieres?</h2>
+        <div class="variant-list">
+          <button class="variant-card" data-variant="merge">
+            <strong>Normal</strong>
+            <span>Arrastra cadenas de frutas iguales para fusionarlas en la casilla destino.</span>
+          </button>
+          <button class="variant-card" data-variant="match3">
+            <strong>Match 3</strong>
+            <span>Intercambia frutas vecinas para crear lineas de 3 o mas y provocar cascadas.</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="screen mode-screen" data-screen="modes">
+        <button class="back-button" id="back-to-variants">Volver</button>
+        <p class="eyebrow">Elige modo</p>
+        <h2>Como quieres jugar?</h2>
+        <div class="mode-list">
+          <button class="mode-card" data-mode="normal">
+            <strong>Normal</strong>
+            <span>El modo clasico: consigue la mejor puntuacion sin reglas extra.</span>
+          </button>
+          <button class="mode-card" data-mode="timed">
+            <strong>Contrarreloj</strong>
+            <span>Haz un movimiento valido antes de que termine el tiempo o se acaba la partida.</span>
+          </button>
+          <button class="mode-card" data-mode="explosive">
+            <strong>Explosivo</strong>
+            <span>Cada cierto tiempo se elimina una fruta y tambien las de alrededor.</span>
+          </button>
+          <button class="mode-card" data-mode="simple">
+            <strong>Simple</strong>
+            <span>Las frutas combinadas desaparecen con una regla mas directa.</span>
+          </button>
+          <button class="mode-card" data-mode="limited">
+            <strong>Movimientos limitados</strong>
+            <span>Solo tienes unos pocos movimientos para conseguir la mejor puntuacion.</span>
+          </button>
+          <button class="mode-card" data-mode="obstacles">
+            <strong>Obstaculos</strong>
+            <span>Algunas casillas quedan bloqueadas y dividen el tablero.</span>
+          </button>
+          <button class="mode-card" data-mode="cleanup">
+            <strong>Limpieza</strong>
+            <span>Las frutas combinadas desaparecen y no aparecen frutas nuevas.</span>
+          </button>
+        </div>
       </section>
 
       <section class="screen level-screen" data-screen="levels">
+        <button class="back-button" id="back-to-modes">Volver</button>
         <p class="eyebrow">Elige nivel</p>
         <h2>Selecciona tablero</h2>
         <div class="level-list">
-          <button class="level-card" data-size="8">
+          <button class="level-card tutorial-card" data-size="8" data-difficulty="tutorial">
+            <strong>Tutorial</strong>
+            <span>8x8 · jugadas guiadas en el centro y tablero fijo</span>
+          </button>
+          <button class="level-card" data-size="8" data-difficulty="easy">
             <strong>Facil</strong>
             <span>8x8 · partida rapida</span>
           </button>
-          <button class="level-card" data-size="9">
+          <button class="level-card" data-size="9" data-difficulty="medium">
             <strong>Medio</strong>
             <span>9x9 · mas fruta, mas opciones</span>
           </button>
-          <button class="level-card" data-size="10">
+          <button class="level-card" data-size="10" data-difficulty="hard">
             <strong>Dificil</strong>
             <span>10x10 · maxima resistencia</span>
           </button>
@@ -42,12 +117,25 @@
             <strong id="score">0</strong>
           </div>
           <p id="status">Fusiona parejas iguales.</p>
+          <div class="mode-pill" id="mode-pill">
+            <span id="mode-label">Normal</span>
+            <strong id="mode-timer"></strong>
+          </div>
           <button class="menu-button" id="menu-toggle" aria-label="Abrir menu">
             <span></span>
             <span></span>
             <span></span>
           </button>
         </header>
+
+        <section class="tutorial-coach" id="tutorial-coach" aria-live="polite" hidden>
+          <div>
+            <span id="tutorial-kicker">Tutorial</span>
+            <strong id="tutorial-title">Paso guiado</strong>
+          </div>
+          <p id="tutorial-body"></p>
+          <p id="tutorial-instruction"></p>
+        </section>
 
         <div class="board" id="board" aria-label="Tablero de frutas"></div>
 
@@ -62,13 +150,53 @@
           </div>
           <button id="restart">Reiniciar</button>
           <button id="change-level">Cambiar nivel</button>
+          <button id="change-mode">Cambiar modo</button>
         </div>
       </section>
 
       <dialog id="game-over" class="modal">
-        <h2>Sin movimientos</h2>
-        <p>Tu puntuacion final ha sido <strong id="final-score">0</strong>.</p>
+        <p class="modal-kicker" id="modal-kicker">Resumen</p>
+        <h2 id="modal-title">Partida terminada</h2>
+        <p id="modal-message">Tu puntuacion final ha sido <strong id="final-score">0</strong>.</p>
+        <div class="modal-stats" aria-label="Estadisticas de la partida">
+          <div>
+            <span>Puntos</span>
+            <strong id="modal-score">0</strong>
+          </div>
+          <div>
+            <span>Mejor</span>
+            <strong id="modal-best">0</strong>
+          </div>
+          <div>
+            <span>Movimientos</span>
+            <strong id="modal-moves">0</strong>
+          </div>
+          <div>
+            <span>Modo</span>
+            <strong id="modal-mode">Normal</strong>
+          </div>
+          <div>
+            <span>Tablero</span>
+            <strong id="modal-board">8x8</strong>
+          </div>
+          <div>
+            <span>Frutas</span>
+            <strong id="modal-fruits">0</strong>
+          </div>
+        </div>
         <button id="play-again">Jugar otra vez</button>
+      </dialog>
+
+      <dialog id="about-dialog" class="modal about-modal">
+        <p class="modal-kicker">Acerca de</p>
+        <h2>Fruit Merge</h2>
+        <p>Un puzle rapido con dos mecanicas: fusionar cadenas de frutas iguales o jugar Match 3 con intercambios precisos.</p>
+        <div class="about-points">
+          <span>Modos normales y especiales</span>
+          <span>Tutoriales guiados por modalidad</span>
+          <span>Partidas cortas en 8x8, 9x9 y 10x10</span>
+        </div>
+        <button id="close-about">Cerrar</button>
       </dialog>
     </main>
 

@@ -7,23 +7,23 @@
   pointer-events: none;
   opacity: 0;
   transform: scale(0.86);
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(255, 255, 255, 0.34);
   font-size: min(68vw, 68vh);
   font-weight: 1000;
   line-height: 0.78;
   letter-spacing: -0.08em;
   text-align: center;
   text-shadow:
-    0 0 28px rgba(255, 62, 47, 0.72),
-    0 0 70px rgba(255, 136, 31, 0.58),
-    0 24px 80px rgba(85, 18, 0, 0.42);
+    0 0 18px rgba(255, 62, 47, 0.38),
+    0 0 42px rgba(255, 136, 31, 0.28),
+    0 16px 54px rgba(85, 18, 0, 0.22);
   transition: opacity 90ms ease, transform 90ms ease;
   user-select: none;
   will-change: opacity, transform;
 }
 
 .timed-warning.is-visible {
-  opacity: 1;
+  opacity: 0.62;
   transform: scale(1);
   animation: timed-warning-pulse 520ms ease-in-out infinite alternate;
 }

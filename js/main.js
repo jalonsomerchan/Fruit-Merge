@@ -38,6 +38,8 @@ const GAME_MODES = {
   cleanup: { label: "Limpieza" }
 };
 
+const gameScreen = ui.screens.find((screen) => screen.dataset.screen === "game");
+
 const DIFFICULTIES = {
   8: "easy",
   9: "medium",
@@ -92,7 +94,8 @@ const game = {
   tutorial: null,
   tutorialStepCompleted: false,
   tutorialTargetKeys: new Set(),
-  tutorialStartKey: ""
+  tutorialStartKey: "",
+  lastEndWasTutorial: false
 };
 
 function boot(size = game.size, difficulty = game.difficulty) {
@@ -112,6 +115,7 @@ function boot(size = game.size, difficulty = game.difficulty) {
   game.popped = null;
   game.locked = false;
   game.gameOver = false;
+  game.lastEndWasTutorial = false;
   ui.dialog.close?.();
   ui.board.replaceChildren();
   closeMenu();
@@ -219,8 +223,31 @@ function draw(message) {
   if (message) ui.status.textContent = message;
   renderStats(ui, game);
   updateModeHud();
+  updateTutorialCoach();
   updateTutorialTargets();
   renderBoard(ui, game);
+}
+
+function updateTutorialCoach() {
+  if (!ui.tutorialCoach) return;
+
+  const step = currentStep();
+  const active = Boolean(isTutorial() && step);
+  gameScreen?.classList.toggle("has-tutorial", active);
+  ui.tutorialCoach.hidden = !active;
+
+  if (!active) {
+    ui.tutorialKicker.textContent = "Tutorial";
+    ui.tutorialTitle.textContent = "";
+    ui.tutorialBody.textContent = "";
+    ui.tutorialInstruction.textContent = "";
+    return;
+  }
+
+  ui.tutorialKicker.textContent = `Paso ${game.tutorial.current + 1} de ${game.tutorial.steps.length}`;
+  ui.tutorialTitle.textContent = step.title ?? "Paso guiado";
+  ui.tutorialBody.textContent = step.body ?? "";
+  ui.tutorialInstruction.textContent = step.instruction ?? step.message ?? "";
 }
 
 function updateTutorialTargets() {
@@ -241,7 +268,8 @@ function updateModeHud() {
   ui.modeLabel.textContent = `${variantLabel} · ${modeLabel}`;
 
   if (isTutorial()) {
-    ui.modeTimer.textContent = `Paso ${game.tutorial.current + 1}/${game.tutorial.steps.length}`;
+    const current = Math.min(game.tutorial.current + 1, game.tutorial.steps.length);
+    ui.modeTimer.textContent = `Paso ${current}/${game.tutorial.steps.length}`;
     ui.modeTimer.hidden = false;
     return;
   }
@@ -332,6 +360,26 @@ function countObstacles() {
 
 function getRemainingMoves() {
   return Math.max(0, (MOVE_LIMITS[game.difficulty] ?? MOVE_LIMITS.easy) - game.moves);
+}
+
+function formatNumber(value) {
+  return value.toLocaleString("es-ES");
+}
+
+function gameModeName() {
+  const variantLabel = PLAY_VARIANTS[game.variant]?.label ?? "Normal";
+  const modeLabel = GAME_MODES[game.mode]?.label ?? "Normal";
+  return `${variantLabel} · ${modeLabel}`;
+}
+
+function boardSummary() {
+  return isTutorial() ? "Tutorial 8x8" : `${game.size}x${game.size}`;
+}
+
+function endGameResourceLabel() {
+  if (game.mode === "obstacles") return `${countFruitTiles()} frutas · ${countObstacles()} rocas`;
+  if (game.mode === "cleanup") return `${countFruitTiles()} frutas restantes`;
+  return `${countFruitTiles()} frutas`;
 }
 
 function beginMergePath(pos) {
@@ -785,16 +833,39 @@ async function clearRandomArea() {
 
 function endGame(message) {
   if (game.gameOver) return;
+  const tutorialCompleted = Boolean(isTutorial() && game.tutorial.current >= game.tutorial.steps.length);
   game.gameOver = true;
+  game.lastEndWasTutorial = tutorialCompleted;
   clearModeTimers();
   clearPath();
   clearSwapSelection();
   game.locked = true;
-  ui.finalScore.textContent = game.score.toLocaleString("es-ES");
+  const scoreText = formatNumber(game.score);
+  const bestText = formatNumber(game.best);
+  ui.modalScore.textContent = scoreText;
+  ui.modalBest.textContent = bestText;
+  ui.modalMoves.textContent = formatNumber(game.moves);
+  ui.modalMode.textContent = gameModeName();
+  ui.modalBoard.textContent = boardSummary();
+  ui.modalFruits.textContent = endGameResourceLabel();
+
+  if (tutorialCompleted) {
+    ui.modalKicker.textContent = "Tutorial completado";
+    ui.modalTitle.textContent = "Ya sabes jugar este modo";
+    ui.modalMessage.innerHTML = `Has terminado el tutorial de <strong>${gameModeName()}</strong>. Ahora prueba una partida normal: misma mecanica, tablero vivo y puntuacion real.`;
+    ui.playAgain.textContent = "Jugar partida normal";
+  } else {
+    ui.modalKicker.textContent = "Resumen";
+    ui.modalTitle.textContent = "Partida terminada";
+    ui.modalMessage.innerHTML = `Tu puntuacion final ha sido <strong>${scoreText}</strong>.`;
+    ui.playAgain.textContent = "Jugar otra vez";
+  }
+
   ui.dialog.showModal();
   ui.status.textContent = message;
   renderStats(ui, game);
   updateModeHud();
+  updateTutorialCoach();
 }
 
 function closeMenu() {
@@ -808,7 +879,44 @@ function toggleMenu() {
   ui.menuPanel.setAttribute("aria-hidden", String(!next));
 }
 
+function shareUrl() {
+  return window.location.origin + window.location.pathname;
+}
+
+async function shareGame() {
+  const shareData = {
+    title: "Fruit Merge",
+    text: "Fusiona frutas, juega Match 3 y supera modos especiales.",
+    url: shareUrl()
+  };
+
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+      ui.shareFeedback.textContent = "Compartido.";
+      return;
+    }
+
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(shareData.url);
+      ui.shareFeedback.textContent = "Enlace copiado.";
+      return;
+    }
+
+    ui.shareFeedback.textContent = `Enlace: ${shareData.url}`;
+  } catch (error) {
+    if (error?.name === "AbortError") return;
+    ui.shareFeedback.textContent = `Enlace: ${shareData.url}`;
+  }
+}
+
 ui.startGame.addEventListener("click", () => showScreen("variants"));
+ui.aboutGame.addEventListener("click", () => ui.aboutDialog.showModal());
+ui.closeAbout.addEventListener("click", () => ui.aboutDialog.close());
+ui.shareGame.addEventListener("click", shareGame);
+ui.backToStart.addEventListener("click", () => showScreen("start"));
+ui.backToVariants.addEventListener("click", () => showScreen("variants"));
+ui.backToModes.addEventListener("click", () => showScreen("modes"));
 ui.menuToggle.addEventListener("click", toggleMenu);
 ui.restart.addEventListener("click", () => boot());
 ui.changeLevel.addEventListener("click", () => {
@@ -821,7 +929,13 @@ ui.changeMode.addEventListener("click", () => {
   clearModeTimers();
   showScreen("variants");
 });
-ui.playAgain.addEventListener("click", () => boot());
+ui.playAgain.addEventListener("click", () => {
+  if (game.lastEndWasTutorial) {
+    boot(8, "easy");
+    return;
+  }
+  boot();
+});
 ui.variantButtons.forEach((button) => {
   button.addEventListener("click", () => {
     game.variant = button.dataset.variant;

@@ -57,6 +57,10 @@ button {
   align-items: flex-start;
 }
 
+.start-content {
+  width: min(720px, 100%);
+}
+
 .level-screen {
   gap: 18px;
 }
@@ -93,6 +97,8 @@ h2 {
 }
 
 .primary,
+.secondary,
+.back-button,
 .level-card,
 .menu-panel button,
 .modal button {
@@ -107,6 +113,32 @@ h2 {
   color: #fff;
   font-weight: 900;
   background: linear-gradient(135deg, var(--accent), var(--hot));
+}
+
+.secondary,
+.back-button {
+  padding: 13px 18px;
+  color: #3a2410;
+  font-weight: 900;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.back-button {
+  width: fit-content;
+}
+
+.start-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.share-feedback {
+  min-height: 1.25em;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
 }
 
 .level-list {
@@ -135,6 +167,8 @@ h2 {
 }
 
 .primary:active,
+.secondary:active,
+.back-button:active,
 .level-card:active,
 .menu-panel button:active,
 .modal button:active {
@@ -471,14 +505,73 @@ h2 {
 }
 
 .modal {
-  width: min(360px, calc(100% - 32px));
+  width: min(480px, calc(100% - 32px));
   border: 0;
   border-radius: 8px;
-  padding: 24px;
-  text-align: center;
+  padding: 22px;
+  text-align: left;
   color: var(--ink);
   background: #fff9ef;
   box-shadow: 0 30px 90px rgba(44, 24, 5, 0.32);
+}
+
+.modal h2 {
+  width: 100%;
+  font-size: clamp(1.9rem, 8vw, 3.1rem);
+}
+
+.modal p {
+  margin: 12px 0 0;
+  color: var(--muted);
+  line-height: 1.38;
+}
+
+.modal p strong {
+  color: var(--ink);
+}
+
+.modal-kicker {
+  margin: 0 0 7px;
+  color: #a34f15;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.modal-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin: 18px 0;
+}
+
+.modal-stats div {
+  min-width: 0;
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.modal-stats span,
+.modal-stats strong {
+  display: block;
+}
+
+.modal-stats span {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.modal-stats strong {
+  margin-top: 3px;
+  font-size: clamp(1rem, 4.3vw, 1.32rem);
+  line-height: 1.06;
+  overflow-wrap: anywhere;
 }
 
 .modal::backdrop {
@@ -487,10 +580,27 @@ h2 {
 }
 
 .modal button {
+  width: 100%;
   padding: 12px 18px;
   color: #fff;
   font-weight: 900;
   background: linear-gradient(135deg, var(--accent), var(--hot));
+}
+
+.about-modal .about-points {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0;
+}
+
+.about-modal .about-points span {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #3a2410;
+  font-weight: 850;
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: inset 0 0 0 1px var(--line);
 }
 
 @keyframes dropIn {

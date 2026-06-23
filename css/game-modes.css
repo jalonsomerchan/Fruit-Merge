@@ -7,6 +7,17 @@
   gap: 18px;
 }
 
+.start-screen h1 {
+  width: min(760px, calc(100vw - 56px));
+  font-size: clamp(4.1rem, 16vw, 8.6rem);
+  line-height: 0.84;
+}
+
+.start-screen .lead {
+  width: min(560px, calc(100vw - 56px));
+  font-size: clamp(1.04rem, 2.5vw, 1.28rem);
+}
+
 .mode-list,
 .variant-list {
   display: grid;
@@ -140,6 +151,19 @@
   .variant-card span {
     margin-top: 4px;
     font-size: 0.9rem;
+  }
+
+  .start-screen h1 {
+    width: min(342px, calc(100vw - 36px));
+    font-size: clamp(3.25rem, 18vw, 5.4rem);
+  }
+
+  .start-actions {
+    width: 100%;
+  }
+
+  .start-actions button {
+    flex: 1 1 130px;
   }
 
   .mode-pill {

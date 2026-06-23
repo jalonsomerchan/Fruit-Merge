@@ -26,13 +26,21 @@
   <body>
     <main class="app">
       <section class="screen start-screen is-active" data-screen="start">
-        <p class="eyebrow">Fruit Merge</p>
-        <h1>Fusiona frutas hasta el nivel 8</h1>
-        <p class="lead">Elige modalidad, modo de juego y nivel para pelear por la mejor puntuacion.</p>
-        <button class="primary" id="start-game">Jugar</button>
+        <div class="start-content">
+          <p class="eyebrow">Puzle de frutas</p>
+          <h1>Fruit Merge</h1>
+          <p class="lead">Fusiona cadenas, crea lineas de 3, domina modos especiales y lleva cada fruta hasta su maxima potencia.</p>
+          <div class="start-actions">
+            <button class="primary" id="start-game">Jugar</button>
+            <button class="secondary" id="about-game">Acerca de</button>
+            <button class="secondary" id="share-game">Compartir</button>
+          </div>
+          <p class="share-feedback" id="share-feedback" aria-live="polite"></p>
+        </div>
       </section>
 
       <section class="screen variant-screen" data-screen="variants">
+        <button class="back-button" id="back-to-start">Volver</button>
         <p class="eyebrow">Elige modalidad</p>
         <h2>Que mecanica quieres?</h2>
         <div class="variant-list">
@@ -48,6 +56,7 @@
       </section>
 
       <section class="screen mode-screen" data-screen="modes">
+        <button class="back-button" id="back-to-variants">Volver</button>
         <p class="eyebrow">Elige modo</p>
         <h2>Como quieres jugar?</h2>
         <div class="mode-list">
@@ -83,6 +92,7 @@
       </section>
 
       <section class="screen level-screen" data-screen="levels">
+        <button class="back-button" id="back-to-modes">Volver</button>
         <p class="eyebrow">Elige nivel</p>
         <h2>Selecciona tablero</h2>
         <div class="level-list">
@@ -123,6 +133,15 @@
           </button>
         </header>
 
+        <section class="tutorial-coach" id="tutorial-coach" aria-live="polite" hidden>
+          <div>
+            <span id="tutorial-kicker">Tutorial</span>
+            <strong id="tutorial-title">Paso guiado</strong>
+          </div>
+          <p id="tutorial-body"></p>
+          <p id="tutorial-instruction"></p>
+        </section>
+
         <div class="board" id="board" aria-label="Tablero de frutas"></div>
 
         <div class="menu-panel" id="menu-panel" aria-hidden="true">
@@ -141,9 +160,48 @@
       </section>
 
       <dialog id="game-over" class="modal">
-        <h2>Partida terminada</h2>
-        <p>Tu puntuacion final ha sido <strong id="final-score">0</strong>.</p>
+        <p class="modal-kicker" id="modal-kicker">Resumen</p>
+        <h2 id="modal-title">Partida terminada</h2>
+        <p id="modal-message">Tu puntuacion final ha sido <strong id="final-score">0</strong>.</p>
+        <div class="modal-stats" aria-label="Estadisticas de la partida">
+          <div>
+            <span>Puntos</span>
+            <strong id="modal-score">0</strong>
+          </div>
+          <div>
+            <span>Mejor</span>
+            <strong id="modal-best">0</strong>
+          </div>
+          <div>
+            <span>Movimientos</span>
+            <strong id="modal-moves">0</strong>
+          </div>
+          <div>
+            <span>Modo</span>
+            <strong id="modal-mode">Normal</strong>
+          </div>
+          <div>
+            <span>Tablero</span>
+            <strong id="modal-board">8x8</strong>
+          </div>
+          <div>
+            <span>Frutas</span>
+            <strong id="modal-fruits">0</strong>
+          </div>
+        </div>
         <button id="play-again">Jugar otra vez</button>
+      </dialog>
+
+      <dialog id="about-dialog" class="modal about-modal">
+        <p class="modal-kicker">Acerca de</p>
+        <h2>Fruit Merge</h2>
+        <p>Un puzle rapido con dos mecanicas: fusionar cadenas de frutas iguales o jugar Match 3 con intercambios precisos.</p>
+        <div class="about-points">
+          <span>Modos normales y especiales</span>
+          <span>Tutoriales guiados por modalidad</span>
+          <span>Partidas cortas en 8x8, 9x9 y 10x10</span>
+        </div>
+        <button id="close-about">Cerrar</button>
       </dialog>
     </main>
 

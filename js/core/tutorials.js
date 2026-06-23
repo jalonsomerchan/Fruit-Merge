@@ -124,103 +124,169 @@ const MATCH3_CLEANUP_BOARD = () => boardFrom([
   ". . . . . . . ."
 ]);
 
-const MODE_TIPS = {
-  normal: "Aprende la jugada basica y despues prueba cadenas mas largas.",
-  timed: "En contrarreloj el contador se reinicia solo cuando haces una jugada valida.",
-  explosive: "En explosivo debes moverte rapido porque cada cierto tiempo se limpia una zona.",
-  simple: "En simple, las frutas usadas desaparecen: piensa que estas abriendo huecos.",
-  limited: "En movimientos limitados cada jugada valida cuenta: busca las mas grandes.",
-  obstacles: "En obstaculos, rompe rocas jugando junto a ellas para abrir el tablero.",
-  cleanup: "En limpieza no entran frutas nuevas: el objetivo es vaciar el tablero."
+const MODE_LESSONS = {
+  normal: {
+    merge: "Modo Normal no tiene presion extra. Aprende a unir frutas iguales y a decidir donde acaba la fusion.",
+    match3: "Modo Normal no tiene presion extra. Aprende a intercambiar dos frutas vecinas para crear lineas de 3 o mas."
+  },
+  timed: {
+    merge: "Contrarreloj reinicia el contador solo con una fusion valida. Mirar rapido, unir rapido.",
+    match3: "Contrarreloj reinicia el contador solo con un intercambio valido. Si no crea linea, no cuenta."
+  },
+  explosive: {
+    merge: "Explosivo limpia una zona cada pocos segundos en partida real. Conviene hacer jugadas antes de que cambie el tablero.",
+    match3: "Explosivo limpia una zona cada pocos segundos en partida real. Forma lineas antes de perder piezas clave."
+  },
+  simple: {
+    merge: "Simple no sube fruta de nivel: las frutas usadas desaparecen y entran nuevas. Piensa en abrir huecos.",
+    match3: "Simple resuelve solo la linea creada. No hay cascadas largas, asi que cada intercambio debe valer por si mismo."
+  },
+  limited: {
+    merge: "Movimientos limitados cuenta cada fusion valida. Una cadena larga vale mas que muchas fusiones pequenas.",
+    match3: "Movimientos limitados cuenta cada intercambio valido. Busca lineas grandes antes de gastar movimiento."
+  },
+  obstacles: {
+    merge: "Obstaculos mete rocas. No se tocan: crea un hueco junto a ellas y la gravedad las rompe.",
+    match3: "Obstaculos mete rocas. No se intercambian: crea una linea junto a ellas para abrir hueco y romperlas."
+  },
+  cleanup: {
+    merge: "Limpieza no rellena el tablero. Cada fruta que quitas se va para siempre: objetivo, vaciar lo maximo posible.",
+    match3: "Limpieza no rellena el tablero. Cada linea elimina fruta para siempre: piensa antes de cerrar caminos."
+  }
 };
+
+const MODE_NAMES = {
+  normal: "Normal",
+  timed: "Contrarreloj",
+  explosive: "Explosivo",
+  simple: "Simple",
+  limited: "Movimientos limitados",
+  obstacles: "Obstaculos",
+  cleanup: "Limpieza"
+};
+
+function makeStep({ board, title, body, instruction, action }) {
+  return {
+    board,
+    title,
+    body,
+    instruction,
+    message: `${title}. ${instruction}`,
+    action
+  };
+}
 
 function mergeSteps(mode) {
   if (mode === "cleanup") {
     return [
-      {
+      makeStep({
         board: MERGE_CLEANUP_BOARD,
-        message: "Tutorial limpieza: arrastra las tres cerezas del centro para vaciar esta zona.",
+        title: "Limpieza: quitar sin rellenar",
+        body: MODE_LESSONS.cleanup.merge,
+        instruction: "Arrastra las tres cerezas del centro. Al soltar, desaparecen y no cae fruta nueva.",
         action: { type: "merge", path: [{ x: 2, y: 4 }, { x: 3, y: 4 }, { x: 4, y: 4 }] }
-      },
-      {
+      }),
+      makeStep({
         board: MERGE_PAIR_BOARD,
-        message: "Ahora haz una pareja normal en el centro: en limpieza desaparecerian y no entrarian frutas nuevas.",
+        title: "Limpieza: conservar opciones",
+        body: "Cada fusion limpia casillas. Si limpias sin plan, puedes dejar frutas aisladas sin pareja.",
+        instruction: "Une las dos cerezas iluminadas del centro para practicar una limpieza corta.",
         action: { type: "merge", path: [{ x: 3, y: 3 }, { x: 4, y: 3 }] }
-      }
+      })
     ];
   }
 
   if (mode === "obstacles") {
     return [
-      {
+      makeStep({
         board: MERGE_OBSTACLE_BOARD,
-        message: "Tutorial obstaculos: fusiona las cerezas junto a la roca para romperla.",
+        title: "Obstaculos: abrir hueco",
+        body: MODE_LESSONS.obstacles.merge,
+        instruction: "Fusiona las dos cerezas junto a la roca. La fusion deja un hueco y la roca se rompe al caer.",
         action: { type: "merge", path: [{ x: 3, y: 3 }, { x: 4, y: 3 }] }
-      },
-      {
+      }),
+      makeStep({
         board: MERGE_CHAIN_BOARD,
-        message: "Las diagonales tambien sirven: une esta cadena de cuatro cerezas del centro.",
+        title: "Obstaculos: rutas flexibles",
+        body: "Las cadenas pueden ir en horizontal, vertical o diagonal. Rodea bloqueos buscando frutas iguales adyacentes.",
+        instruction: "Une la diagonal completa de cuatro cerezas iluminadas.",
         action: { type: "merge", path: [{ x: 2, y: 2 }, { x: 3, y: 3 }, { x: 4, y: 4 }, { x: 5, y: 5 }] }
-      }
+      })
     ];
   }
 
   return [
-    {
+    makeStep({
       board: MERGE_PAIR_BOARD,
-      message: `Tutorial ${MODE_TIPS[mode] ?? "basico"} Arrastra las dos cerezas iluminadas del centro de izquierda a derecha.`,
+      title: `${MODE_NAMES[mode] ?? "Normal"}: fusion basica`,
+      body: MODE_LESSONS[mode]?.merge ?? MODE_LESSONS.normal.merge,
+      instruction: "Arrastra desde la cereza verde hasta la otra cereza iluminada. La ultima casilla recibe la fusion.",
       action: { type: "merge", path: [{ x: 3, y: 3 }, { x: 4, y: 3 }] }
-    },
-    {
+    }),
+    makeStep({
       board: MERGE_CHAIN_BOARD,
-      message: "Ahora practica una cadena diagonal de cuatro cerezas para crear una fruta mucho mas potente.",
+      title: "Cadenas: mas fruta, mas potencia",
+      body: "Puedes encadenar mas de dos frutas iguales si son adyacentes. Diagonal tambien cuenta.",
+      instruction: "Sigue los numeros y une las cuatro cerezas. Soltar en la ultima crea una fruta mas potente.",
       action: { type: "merge", path: [{ x: 2, y: 2 }, { x: 3, y: 3 }, { x: 4, y: 4 }, { x: 5, y: 5 }] }
-    }
+    })
   ];
 }
 
 function match3Steps(mode) {
   if (mode === "cleanup") {
     return [
-      {
+      makeStep({
         board: MATCH3_CLEANUP_BOARD,
-        message: "Tutorial Match 3 limpieza: baja la cereza iluminada para formar tres cerezas en fila.",
+        title: "Match 3 limpieza: linea que no rellena",
+        body: MODE_LESSONS.cleanup.match3,
+        instruction: "Baja la cereza iluminada para formar tres cerezas en fila. Esa linea desaparece para siempre.",
         action: { type: "swap", from: { x: 3, y: 3 }, to: { x: 3, y: 4 } }
-      },
-      {
+      }),
+      makeStep({
         board: MATCH3_ROW_BOARD,
-        message: "En limpieza no se rellenaria el tablero. Practica ahora una linea horizontal de tres.",
+        title: "Match 3 limpieza: no cerrar caminos",
+        body: "El tablero fijo ayuda a ver rutas. En partida real de limpieza, cada linea reduce opciones futuras.",
+        instruction: "Repite el intercambio vertical iluminado para crear una linea horizontal de tres.",
         action: { type: "swap", from: { x: 3, y: 3 }, to: { x: 3, y: 4 } }
-      }
+      })
     ];
   }
 
   if (mode === "obstacles") {
     return [
-      {
+      makeStep({
         board: MATCH3_OBSTACLE_BOARD,
-        message: "Tutorial Match 3 obstaculos: crea la linea de cerezas junto a la roca marcada para romperla.",
+        title: "Match 3 obstaculos: linea junto a roca",
+        body: MODE_LESSONS.obstacles.match3,
+        instruction: "Baja la cereza iluminada para crear una linea junto a la roca. El hueco la rompe al resolver.",
         action: { type: "swap", from: { x: 3, y: 3 }, to: { x: 3, y: 4 } }
-      },
-      {
+      }),
+      makeStep({
         board: MATCH3_COLUMN_BOARD,
-        message: "Ahora crea una linea vertical intercambiando la cereza de la derecha hacia el centro.",
+        title: "Match 3 obstaculos: mirar vertical",
+        body: "No busques solo filas. Una columna buena puede abrir zonas que una roca estaba separando.",
+        instruction: "Mueve la cereza de la derecha al centro para crear una linea vertical.",
         action: { type: "swap", from: { x: 4, y: 3 }, to: { x: 3, y: 3 } }
-      }
+      })
     ];
   }
 
   return [
-    {
+    makeStep({
       board: MATCH3_ROW_BOARD,
-      message: `Tutorial Match 3 ${MODE_TIPS[mode] ?? "basico"} Baja la cereza iluminada para formar tres cerezas en fila.`,
+      title: `Match 3 ${MODE_NAMES[mode] ?? "Normal"}: intercambio valido`,
+      body: MODE_LESSONS[mode]?.match3 ?? MODE_LESSONS.normal.match3,
+      instruction: "Toca la cereza verde y despues la otra casilla iluminada. Deben quedar tres cerezas en fila.",
       action: { type: "swap", from: { x: 3, y: 3 }, to: { x: 3, y: 4 } }
-    },
-    {
+    }),
+    makeStep({
       board: MATCH3_COLUMN_BOARD,
-      message: "Ahora crea una linea vertical: mueve la cereza de la derecha al centro.",
+      title: "Match 3: filas y columnas",
+      body: "Un intercambio valido puede crear filas o columnas. Si no crea linea, el juego lo deshace.",
+      instruction: "Mueve la cereza de la derecha al centro para crear una linea vertical.",
       action: { type: "swap", from: { x: 4, y: 3 }, to: { x: 3, y: 3 } }
-    }
+    })
   ];
 }
 

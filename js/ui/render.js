@@ -6,15 +6,6 @@ function key(pos) {
   return `${pos.x},${pos.y}`;
 }
 
-function posFromKey(tileKey) {
-  const [x, y] = tileKey.split(",").map(Number);
-  return { x, y };
-}
-
-function samePos(a, b) {
-  return a?.x === b?.x && a?.y === b?.y;
-}
-
 function renderPathLinks(ui, game) {
   ui.board.querySelectorAll(".path-link").forEach((node) => node.remove());
 
@@ -44,35 +35,6 @@ function renderPathLinks(ui, game) {
   }
 }
 
-function renderTutorialMarkers(ui, game) {
-  ui.board.querySelectorAll(".tutorial-marker").forEach((node) => node.remove());
-
-  const targetKeys = Array.from(game.tutorialTargetKeys ?? []);
-  if (!targetKeys.length) return;
-
-  const selected = game.swapFrom ?? game.origin ?? null;
-  const selectedKey = selected ? key(selected) : "";
-
-  targetKeys.forEach((tileKey, index) => {
-    const pos = posFromKey(tileKey);
-    const marker = document.createElement("span");
-    const isSelected = selectedKey === tileKey;
-    const isNext = selectedKey && !isSelected;
-
-    marker.className = [
-      "tutorial-marker",
-      isSelected && "is-selected",
-      isNext && "is-next",
-      game.tutorialStartKey === tileKey && "is-start"
-    ].filter(Boolean).join(" ");
-    marker.textContent = String(index + 1);
-    marker.style.setProperty("--x", pos.x);
-    marker.style.setProperty("--y", pos.y);
-    marker.setAttribute("aria-hidden", "true");
-    ui.board.append(marker);
-  });
-}
-
 export function renderStats(ui, game) {
   ui.score.textContent = game.score.toLocaleString("es-ES");
   ui.best.textContent = game.best.toLocaleString("es-ES");
@@ -85,7 +47,7 @@ function ensureNode(tile, ui) {
     node = document.createElement("button");
     node.className = "tile";
     node.type = "button";
-    node.innerHTML = "<img alt=\"\" draggable=\"false\" />";
+    node.innerHTML = "<span class=\"tutorial-step\" aria-hidden=\"true\"></span><img alt=\"\" draggable=\"false\" />";
     ui.board.append(node);
     tileNodes.set(tile.id, node);
   }
@@ -94,9 +56,11 @@ function ensureNode(tile, ui) {
 
 export function renderBoard(ui, game) {
   const seen = new Set();
+  const tutorialOrders = new Map(
+    Array.from(game.tutorialTargetKeys ?? []).map((tileKey, index) => [tileKey, String(index + 1)])
+  );
   ui.board.style.setProperty("--size", game.size);
   renderPathLinks(ui, game);
-  renderTutorialMarkers(ui, game);
 
   const destination = game.path.at(-1);
 
@@ -109,6 +73,8 @@ export function renderBoard(ui, game) {
       const node = ensureNode(tile, ui);
       const tileKey = key({ x, y });
       const image = node.querySelector("img");
+      const tutorialStep = node.querySelector(".tutorial-step");
+      const tutorialOrder = tutorialOrders.get(tileKey) ?? "";
 
       node.dataset.pos = tileKey;
       node.dataset.order = game.pathKeys.get(tileKey) ?? "";
@@ -116,6 +82,8 @@ export function renderBoard(ui, game) {
       node.style.setProperty("--y", y);
       node.style.setProperty("--to-x", game.collecting.get(tile.id)?.x ?? 0);
       node.style.setProperty("--to-y", game.collecting.get(tile.id)?.y ?? 0);
+      tutorialStep.textContent = tutorialOrder;
+      tutorialStep.hidden = !tutorialOrder;
 
       if (tile.type === "obstacle") {
         node.dataset.level = "";
